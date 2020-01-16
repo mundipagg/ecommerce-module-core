@@ -1,3 +1,4 @@
+[![Codacy Badge](https://api.codacy.com/project/badge/Grade/c956ebe23a50417999b284f2b53a61d2)](https://app.codacy.com/manual/mundipagg/ecommerce-module-core?utm_source=github.com&utm_medium=referral&utm_content=mundipagg/ecommerce-module-core&utm_campaign=Badge_Grade_Dashboard)
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/32e40b5efbc2419eaf78881dd6687dcd)](https://app.codacy.com/app/mundipagg/ecommerce-module-core?utm_source=github.com&utm_medium=referral&utm_content=mundipagg/ecommerce-module-core&utm_campaign=Badge_Grade_Settings)
 [![Latest Stable Version](https://poser.pugx.org/mundipagg/ecommerce-module-core/v/stable)](https://packagist.org/packages/mundipagg/ecommerce-module-core)
 [![mundipagg maturity](http://maturityapp.herokuapp.com/maturity.php?project=mundipagg/ecommerce-module-core&command=badge_image)](http://maturityapp.herokuapp.com/index.html?project=mundipagg/ecommerce-module-core)
