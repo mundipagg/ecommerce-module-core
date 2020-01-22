@@ -126,6 +126,33 @@ class ChargeService
         return new ServiceResponse(false, $resultApi);
     }
 
+    /**
+     * @param Charge $charge
+     * @param int $amount
+     * @return ServiceResponse
+     */
+    public function cancelJustInMundiPagg(Charge $charge, $amount = 0)
+    {
+        $this->logService->info("Call just Charge cancel");
+
+        $this->logService->info(
+            "Cancel charge on Mundipagg - " . $charge->getMundipaggId()->getValue()
+        );
+
+        $apiService = new APIService();
+        $resultApi = $apiService->cancelCharge($charge, $amount);
+
+        if ($resultApi === null) {
+            $i18n = new LocalizationService();
+
+            $message = $i18n->getDashboard("Charge canceled with success");
+            return new ServiceResponse(true, $message);
+        }
+
+       // $this->logService->info("Call just Charge cancel");
+        return new ServiceResponse(false, $resultApi);
+    }
+
     public function cancel(Charge $charge, $amount = 0)
     {
 

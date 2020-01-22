@@ -7,6 +7,7 @@ use Mundipagg\Core\Kernel\Aggregates\Order;
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup as MPSetup;
 use Mundipagg\Core\Kernel\Interfaces\PlatformOrderInterface;
 use Mundipagg\Core\Kernel\Repositories\OrderRepository;
+use Mundipagg\Core\Kernel\Services\ChargeService;
 use Mundipagg\Core\Kernel\ValueObjects\OrderState;
 use Mundipagg\Core\Kernel\ValueObjects\OrderStatus;
 use Mundipagg\Core\Payment\Aggregates\Customer;
@@ -192,7 +193,37 @@ final class OrderService
                 $paymentOrder = new PaymentOrder;
                 $paymentOrder->setCode($platformOrder->getcode());
                 $frontMessage = $exceptionHandler->handle($e, $paymentOrder);
+
+              //  sleep(10);
+              //  $this->tryCancelAndCheckMultiPayment($response);
+
                 throw new \Exception($frontMessage, 400);
+        }
+    }
+
+    /**
+     * @param $response
+     * @throws \Exception
+     */
+    public function tryCancelAndCheckMultiPayment($response)
+    {
+        $existStatusPaid = false;
+        $message = null;
+        foreach ($response['charges'] as $charge) {
+            if (isset($charge['status']) && $charge['status'] == 'paid') {
+                $existStatusPaid = true;
+            }
+
+            if ($existStatusPaid && (isset($charge['status']) && $charge['status'] == 'failed')) {
+                $chargeService = new ChargeService();
+                $chargeObject = new \Mundipagg\Core\Kernel\Factories\ChargeFactory();
+                $object = $chargeObject->createFromPostData($charge);
+                $message = $chargeService->cancelJustInMundiPagg($object);
+            }
+
+            if (isset($message) && !$message->isSuccess()) {
+                throw new \Exception($message);
+            }
         }
     }
 
