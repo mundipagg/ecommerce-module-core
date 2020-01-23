@@ -131,7 +131,7 @@ class ChargeService
      * @param int $amount
      * @return ServiceResponse
      */
-    public function cancelJustInMundiPagg(Charge $charge, $amount = 0)
+    public function cancelJustInMundiPagg(Charge $charge)
     {
         $this->logService->info("Call just Charge cancel");
 
@@ -140,7 +140,7 @@ class ChargeService
         );
 
         $apiService = new APIService();
-        $resultApi = $apiService->cancelCharge($charge, $amount);
+        $resultApi = $apiService->cancelCharge($charge);
 
         if ($resultApi === null) {
             $i18n = new LocalizationService();
@@ -223,5 +223,30 @@ class ChargeService
         }
 
         return new ServiceResponse(false, $resultApi);
+    }
+
+    /**
+     * @param \Mundipagg\Core\Kernel\Aggregates\Charge[] $charges
+     * @return \Mundipagg\Core\Kernel\Aggregates\Charge[]|array
+     */
+    public function checkHasChargesPaidBetweenFailed(array $charges)
+    {
+        $existStatusFailed = null;
+        $listChargesPaid = [];
+        
+        $existStatusFailed = array_filter($charges, function($charge) {
+            return $charge->getStatus()->getStatus() == 'failed';
+        });
+
+        if ($existStatusFailed != null) {
+            $listChargesPaid = array_filter($charges, function($charge) {
+                return (
+                    $charge->getStatus()->getStatus() == 'paid' ||
+                    $charge->getStatus()->getStatus() == 'underpaid'
+                );
+            });
+        }
+        
+        return $listChargesPaid;
     }
 }
