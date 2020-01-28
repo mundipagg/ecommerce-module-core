@@ -2,24 +2,19 @@
 
 namespace Mundipagg\Core\Kernel\Services;
 
-use MundiAPILib\Models\GetChargeResponse;
-use Mundipagg\Core\Kernel\Aggregates\Charge;
-use Mundipagg\Core\Kernel\Repositories\ChargeRepository;
-use Mundipagg\Core\Kernel\Repositories\OrderRepository;
-use Mundipagg\Core\Kernel\Responses\ServiceResponse;
-use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
-use Mundipagg\Core\Kernel\ValueObjects\Id\ChargeId;
+use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
+use Mundipagg\Core\Kernel\Repositories\ChargeFailedRepository;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
-use Mundipagg\Core\Kernel\ValueObjects\OrderState;
-use Mundipagg\Core\Kernel\ValueObjects\OrderStatus;
-use Mundipagg\Core\Payment\Services\ResponseHandlers\OrderHandler;
-use Mundipagg\Core\Webhook\Services\ChargeHandlerService;
-use Unirest\Exception;
 
 class ChargeFailedService
 {
     /** @var LogService  */
     protected $logService;
+
+    /**
+     * @var ChargeFailedRepository
+     */
+    protected $chargeFailedRepository;
 
     public function __construct()
     {
@@ -27,9 +22,62 @@ class ChargeFailedService
             'ChargeFailedService',
             true
         );
+
+        $this->chargeFailedRepository = new ChargeFailedRepository();
     }
 
-    public function persistChargeFailed($response) {
+    /**
+     * @param ChargeFailed $chargeFailed
+     * @return bool
+     */
+    public function persistChargeFailed(ChargeFailed $chargeFailed)
+    {
+        try {
+            $this->chargeFailedRepository->save($chargeFailed);
+        } catch (\Exception $exception) {
+            return false;
+        }
 
+        return true;
+    }
+
+    /**
+     * @param OrderId $orderId
+     * @return \Mundipagg\Core\Kernel\Abstractions\AbstractEntity|ChargeFailed|null
+     * @throws \Exception
+     */
+    public function findByOrderId(OrderId $orderId)
+    {
+        try {
+            return $this->chargeFailedRepository->findByOrderId($orderId);
+        } catch (\Exception $exception) {
+            throw new \Exception($exception, $exception->getCode());
+        }
+    }
+
+
+    /**
+     * @param \Mundipagg\Core\Kernel\Aggregates\ChargeFailed[] $listChargeFailed
+     * @return \Mundipagg\Core\Kernel\Aggregates\ChargeFailed[]|array
+     */
+    public function checkHasChargesPaidBetweenFailed(array $listChargeFailed)
+    {
+        $existStatusFailed = null;
+        $listChargesPaid = [];
+
+        $existStatusFailed = array_filter($listChargeFailed, function(ChargeFailed $chargeFailed) {
+            return $chargeFailed->getStatus()->getStatus() == 'failed';
+        });
+
+        if ($existStatusFailed != null) {
+            $listChargesPaid = array_filter($listChargeFailed, function(ChargeFailed $chargeFailed) {
+                return (
+                    $chargeFailed->getStatus()->getStatus() == 'paid' ||
+                    $chargeFailed->getStatus()->getStatus() == 'underpaid'
+                );
+            });
+        }
+
+        return $listChargesPaid;
     }
 }
