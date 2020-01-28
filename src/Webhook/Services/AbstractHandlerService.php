@@ -50,12 +50,8 @@ abstract class AbstractHandlerService
     {
         $handler = $this->getActionHandle($webhook->getType()->getAction());
 
-        if (method_exists($this, $handler) || method_exists(ExceptionOrderHandlerService::class, $handler)) {
+        if (method_exists($this, $handler)) {
             $this->loadOrder($webhook);
-            
-            if ($this->order === null) {
-                return (new ExceptionOrderHandlerService())->$handler($webhook);
-            }
             
             $platformOrder = $this->order->getPlatformOrder();
 
