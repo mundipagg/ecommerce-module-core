@@ -291,11 +291,6 @@ final class ChargeOrderService extends AbstractHandlerService
              */
             $order = new $orderDecoratorClass();
             $order->loadByIncrementId($charge->getCode());
-            
-//            if ($order->getPlatformOrder()->getId() === null) {
-//                $this->order = null;
-//                return;
-//            }
 
             $orderFactory = new OrderFactory();
             $order = $orderFactory->createFromPlatformData(
