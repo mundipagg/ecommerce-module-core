@@ -14,6 +14,7 @@ use Mundipagg\Core\Kernel\Interfaces\PlatformOrderInterface;
 use Mundipagg\Core\Kernel\Repositories\ChargeRepository;
 use Mundipagg\Core\Kernel\Repositories\OrderRepository;
 use Mundipagg\Core\Kernel\Services\LocalizationService;
+use Mundipagg\Core\Kernel\Services\LogService;
 use Mundipagg\Core\Kernel\Services\MoneyService;
 use Mundipagg\Core\Kernel\Services\OrderService;
 use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
@@ -133,8 +134,11 @@ final class ChargeOrderService extends AbstractHandlerService
         $orderService->syncPlatformWith($order);
 
         $returnMessage = $this->prepareReturnMessage($charge);
+
+        $response = $this->tryCancelMultiMethodsWithOrder();
+
         $result = [
-            "message" => $returnMessage,
+            "message" => $returnMessage . ' - ' . $response,
             "code" => 200
         ];
 
@@ -225,28 +229,83 @@ final class ChargeOrderService extends AbstractHandlerService
 
     protected function handlePaymentFailed(Webhook $webhook)
     {
-        // checar se foi pago.
-      //  $this->handleRefunded($webhook);
+        $order = $this->order;
 
-        $chargeService = new ChargeService();
+        $orderRepository = new OrderRepository();
+        $chargeRepository = new ChargeRepository();
         $orderService = new OrderService();
-        $chargeListPaid = $chargeService->checkHasChargesPaidBetweenFailed(
-            $this->order->getCharges()
+
+        /**
+         * @var Charge $charge
+         */
+        $charge = $webhook->getEntity();
+
+        $transaction = $charge->getLastTransaction();
+
+        $outdatedCharge = $chargeRepository->findByMundipaggId(
+            $charge->getMundipaggId()
         );
 
-        $response = [];
-        if (!empty($chargeListPaid)) {
-            foreach ($chargeListPaid as $chargePaid) {
-                $response[] = ($chargeService->cancel($chargePaid))->getMessage();
-            }
+        if ($outdatedCharge !== null) {
+            $charge = $outdatedCharge;
         }
 
+        if ($transaction !== null) {
+            $outdatedCharge->addTransaction($transaction);
+        }
+
+        $charge->failed();
+        $order->updateCharge($charge);
+
+        $orderRepository->save($order);
+        $history = $this->prepareHistoryComment($charge);
+        $order->getPlatformOrder()->addHistoryComment($history);
+        $orderService->syncPlatformWith($order);
+
+        $returnMessage = $this->prepareReturnMessage($charge);
+
+        $response = $this->tryCancelMultiMethodsWithOrder();
+
         $result = [
-            "message" => $response,
+            "message" => $returnMessage . ' - ' . $response,
             "code" => 200
         ];
 
         return $result;
+    }
+
+    /**
+     * @return string
+     */
+    private function tryCancelMultiMethodsWithOrder()
+    {
+        $chargeService = new ChargeService();
+        $chargeListPaid = $chargeService->getNotFailedOrCanceledCharges(
+            $this->order->getCharges()
+        );
+
+        $logService = new LogService(
+            'ChargeOrderService',
+            true
+        );
+
+        $response = [];
+        if (!empty($chargeListPaid && count($this->order->getCharges()) > 1)) {
+            $logService->info('Try Cancel Charge(s)');
+
+            foreach ($chargeListPaid as $chargePaid) {
+                $message =
+                    ($chargeService->cancel($chargePaid))->getMessage()
+                    . ' - ' .
+                    $chargePaid->getMundipaggId()->getValue();
+
+                $logService->info($message);
+
+                $response[] = $message;
+            }
+        }
+
+        return implode('/', $response);
     }
 
     //@todo handleCreated
@@ -379,6 +438,12 @@ final class ChargeOrderService extends AbstractHandlerService
             return $history;
         }
 
+        if ($charge->getStatus()->equals(ChargeStatus::failed())) {
+            $history = $i18n->getDashboard('Charge failed.');
+
+            return $history;
+        }
+
         $amountInCurrency = $moneyService->centsToFloat($charge->getRefundedAmount());
         $history = $i18n->getDashboard(
             'Charge canceled.'
@@ -424,7 +489,6 @@ final class ChargeOrderService extends AbstractHandlerService
                 $returnMessage .= ". Amount Canceled: $amountCanceledInCurrency";
             }
 
-
             $refundedAmount = $charge->getRefundedAmount();
             if ($refundedAmount > 0) {
                 $returnMessage = "Refunded amount unil now: " .
@@ -432,6 +496,10 @@ final class ChargeOrderService extends AbstractHandlerService
             }
 
             return $returnMessage;
+        }
+
+        if ($charge->getStatus()->equals(ChargeStatus::failed())) {
+            return "Charge failed at Mundipagg";
         }
 
         $amountInCurrency = $moneyService->centsToFloat($charge->getRefundedAmount());
