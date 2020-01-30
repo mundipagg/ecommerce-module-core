@@ -86,11 +86,11 @@ final class ChargeHandlerService
         }
 
         $chargeService = new ChargeService();
-        $chargeListPaid = $chargeService->checkHasChargesPaidBetweenFailed(
+        $chargeListPaid = $chargeService->getNotFailedOrCanceledCharges(
             $chargeList
         );
 
-        if (empty($chargeListPaid)) {
+        if (empty($chargeListPaid) && count($chargeList) <= 1) {
             return [];
         }
 
