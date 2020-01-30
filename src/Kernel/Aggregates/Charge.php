@@ -369,6 +369,11 @@ final class Charge extends AbstractEntity implements ChargeInterface
         return $this->transactions;
     }
 
+    public function failed()
+    {
+        $this->status = ChargeStatus::failed();
+    }
+
     public function updateTransaction(Transaction $updatedTransaction, $overwriteId = false)
     {
         $transactions = $this->getTransactions();
