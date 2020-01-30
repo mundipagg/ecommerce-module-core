@@ -243,36 +243,19 @@ class ChargeService
      * @param \Mundipagg\Core\Kernel\Aggregates\Charge[] $listChargeFailed
      * @return \Mundipagg\Core\Kernel\Aggregates\Charge[]|array
      */
-    public function checkHasChargesPaidBetweenFailed(array $listCharge)
+    public function getNotFailedOrCanceledCharges(array $listCharge)
     {
-        $existStatusFailed = null;
-        $listChargesPaid = [];
-
         $existStatusFailed = array_filter(
             $listCharge,
             function (Charge $charge) {
                 return (
-                    $charge->getStatus()->getStatus() == 'failed' ||
-                    $charge->getStatus()->getStatus() == 'canceled'
+                    ($charge->getStatus()->getStatus() != 'failed') &&
+                    ($charge->getStatus()->getStatus() != 'canceled')
                 );
             }
         );
 
-        if ($existStatusFailed != null) {
-            $listChargesPaid = array_filter(
-                $listCharge,
-                function (Charge $charge) {
-                    return (
-                        $charge->getStatus()->getStatus() == 'pending' ||
-                        $charge->getStatus()->getStatus() == 'paid' ||
-                        $charge->getStatus()->getStatus() == 'underpaid'
-                    );
-                });
-
-            $this->logService->info("Charge paid list cancel");
-        }
-
-        return $listChargesPaid;
+        return $existStatusFailed;
     }
 
     public function prepareHistoryComment(ChargeInterface $charge)
