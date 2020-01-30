@@ -70,8 +70,10 @@ class ENUS extends AbstractI18NTable
             'quarterly' => null,
             'yearly' => null,
             'biennial' => null,
+            'semiannual' => null,
             'Subscription created at Mundipagg. Id: %s' => null,
-            'weekly' => null
+            'weekly' => null,
+            'New order status: %s' => null
         ];
     }
 }
