@@ -73,6 +73,34 @@ final class ChargeFailedRepository extends AbstractRepository
     }
 
     /**
+     * @param string $code
+     * @return array|null
+     * @throws \Mundipagg\Core\Kernel\Exceptions\InvalidParamException
+     */
+    public function findByCode($code)
+    {
+        $chargeFailedTable = $this->db->getTable(
+            AbstractDatabaseDecorator::TABLE_CHARGE_FAILED
+        );
+
+        $query = "SELECT * FROM `{$chargeFailedTable}` ";
+        $query .= "WHERE code = '{$code}';";
+
+        $result = $this->db->fetch($query);
+
+        if ($result->num_rows === 0) {
+            return null;
+        }
+
+        $factory = new ChargeFailedFactory();
+        $chargeListFailed = [];
+        foreach ($result->rows as $chargeFailedDb) {
+            $chargeListFailed[] = $factory->createFromDbData($chargeFailedDb);
+        }
+        return $chargeListFailed;
+    }
+
+    /**
      * @param OrderId $orderId
      * @return AbstractEntity|\Mundipagg\Core\Kernel\Aggregates\ChargeFailed|null
      * @throws \Mundipagg\Core\Kernel\Exceptions\InvalidParamException

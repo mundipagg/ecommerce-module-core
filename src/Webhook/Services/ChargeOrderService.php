@@ -20,6 +20,7 @@ use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 use Mundipagg\Core\Kernel\ValueObjects\OrderStatus;
 use Mundipagg\Core\Webhook\Aggregates\Webhook;
 use Mundipagg\Core\Webhook\Exceptions\WebhookHandlerNotFoundException;
+use Mundipagg\Core\Kernel\Services\ChargeService;
 
 final class ChargeOrderService extends AbstractHandlerService
 {
@@ -157,11 +158,13 @@ final class ChargeOrderService extends AbstractHandlerService
         $orderService = new OrderService();
 
         $order = $this->order;
+
         if ($order->getStatus()->equals(OrderStatus::canceled())) {
             $result = [
                 "message" => "It is not possible to refund a charge of an order that was canceled.",
                 "code" => 200
             ];
+
             return $result;
         }
 
@@ -179,9 +182,11 @@ final class ChargeOrderService extends AbstractHandlerService
         $outdatedCharge = $chargeRepository->findByMundipaggId(
             $charge->getMundipaggId()
         );
+
         if ($outdatedCharge !== null) {
             $charge = $outdatedCharge;
         }
+
         $cancelAmount = $charge->getAmount();
         if ($transaction !== null) {
             $outdatedCharge->addTransaction($transaction);
@@ -198,6 +203,9 @@ final class ChargeOrderService extends AbstractHandlerService
         $orderService->syncPlatformWith($order);
 
         $returnMessage = $this->prepareReturnMessage($charge);
+
+        $this->order = $order;
+
         $result = [
             "message" => $returnMessage,
             "code" => 200
@@ -215,17 +223,30 @@ final class ChargeOrderService extends AbstractHandlerService
         //AcquirerMessage = Simulator|Ocorreu um timeout (transação simulada)
     }
 
-    //@todo handlePaymentFailed
-    protected function handlePaymentFailed_TODO(Webhook $webhook)
+    protected function handlePaymentFailed(Webhook $webhook)
     {
-        //@todo
-        //In simulator, Occurs with values between 1.051,72 and 1.262,06, auth
-        // only and auth and capture.
-        //AcquirerMessage = Simulator|Transação de simulação negada por falta de crédito, utilizado para realizar simulação de autorização parcial
-        //ocurrs in the next case of the simulator too.
+        // checar se foi pago.
+      //  $this->handleRefunded($webhook);
 
-        //When this webhook is received, the order wasn't created on magento, so
-        // no further action is needed.
+        $chargeService = new ChargeService();
+        $orderService = new OrderService();
+        $chargeListPaid = $chargeService->checkHasChargesPaidBetweenFailed(
+            $this->order->getCharges()
+        );
+
+        $response = [];
+        if (!empty($chargeListPaid)) {
+            foreach ($chargeListPaid as $chargePaid) {
+                $response[] = ($chargeService->cancel($chargePaid))->getMessage();
+            }
+        }
+
+        $result = [
+            "message" => $response,
+            "code" => 200
+        ];
+
+        return $result;
     }
 
     //@todo handleCreated

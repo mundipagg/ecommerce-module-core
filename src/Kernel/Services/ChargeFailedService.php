@@ -55,6 +55,20 @@ class ChargeFailedService
         }
     }
 
+    /**
+     * @param string $code
+     * @return \Mundipagg\Core\Kernel\Abstractions\AbstractEntity|ChargeFailed|null
+     * @throws \Exception
+     */
+    public function findByCode($code)
+    {
+        try {
+            return $this->chargeFailedRepository->findByCode($code);
+        } catch (\Exception $exception) {
+            throw new \Exception($exception, $exception->getCode());
+        }
+    }
+
 
     /**
      * @param \Mundipagg\Core\Kernel\Aggregates\ChargeFailed[] $listChargeFailed
@@ -65,17 +79,22 @@ class ChargeFailedService
         $existStatusFailed = null;
         $listChargesPaid = [];
 
-        $existStatusFailed = array_filter($listChargeFailed, function(ChargeFailed $chargeFailed) {
-            return $chargeFailed->getStatus()->getStatus() == 'failed';
-        });
+        $existStatusFailed = array_filter(
+            $listChargeFailed,
+            function (ChargeFailed $chargeFailed) {
+                return $chargeFailed->getStatus()->getStatus() == 'failed';
+            }
+        );
 
         if ($existStatusFailed != null) {
-            $listChargesPaid = array_filter($listChargeFailed, function(ChargeFailed $chargeFailed) {
-                return (
-                    $chargeFailed->getStatus()->getStatus() == 'paid' ||
-                    $chargeFailed->getStatus()->getStatus() == 'underpaid'
-                );
-            });
+            $listChargesPaid = array_filter(
+                $listChargeFailed,
+                function (ChargeFailed $chargeFailed) {
+                    return (
+                        $chargeFailed->getStatus()->getStatus() == 'paid' ||
+                        $chargeFailed->getStatus()->getStatus() == 'underpaid'
+                    );
+                });
         }
 
         return $listChargesPaid;

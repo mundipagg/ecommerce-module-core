@@ -8,6 +8,7 @@ use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Exceptions\NotFoundException;
 use Mundipagg\Core\Kernel\Factories\ChargeFactory;
+use Mundipagg\Core\Kernel\Responses\ServiceResponse;
 use Mundipagg\Core\Kernel\Services\APIService;
 use Mundipagg\Core\Kernel\Services\ChargeService;
 use Mundipagg\Core\Kernel\Services\ChargeFailedService;
@@ -51,18 +52,17 @@ final class ChargeHandlerService
     public function handle(Webhook $webhook)
     {
         $this->build($webhook->getComponent());
-
         $multiMeiosCanceled = $this->tryCancelMultiMethods($webhook);
 
         return array_merge(
-            $multiMeiosCanceled,
-            $this->listChargeHandleService->handle($webhook)
+            $this->listChargeHandleService->handle($webhook),
+            $multiMeiosCanceled
         );
     }
 
     /**
      * @param Webhook $webhook
-     * @return array|\Mundipagg\Core\Kernel\Responses\ServiceResponse|null
+     * @return array|ServiceResponse[]
      * @throws InvalidParamException
      */
     public function tryCancelMultiMethods(Webhook $webhook)
@@ -73,25 +73,29 @@ final class ChargeHandlerService
         $chargeFailedService = new ChargeFailedService();
 
         /** @var ChargeFailed $chargeFailedList */
-        $chargeFailedList = $chargeFailedService->findByOrderId($charge->getOrderId());
+        $chargeFailedList = $chargeFailedService->findByCode($charge->getCode());
 
-        $chargeListPaid = $chargeFailedService->checkHasChargesPaidBetweenFailed(
-            $chargeFailedList
+        if (empty($chargeFailedList)) {
+            return [];
+        }
+
+        $chargeList = [];
+        $chargeFactory = new ChargeFactory();
+        foreach ($chargeFailedList as $chargeFailed) {
+            $chargeList[] = $chargeFactory->createFromChargeFailed($chargeFailed);
+        }
+
+        $chargeService = new ChargeService();
+        $chargeListPaid = $chargeService->checkHasChargesPaidBetweenFailed(
+            $chargeList
         );
 
         if (empty($chargeListPaid)) {
-            return null;
-        }
-
-        $chargeFactory = new ChargeFactory();
-        $chargeList = [];
-        foreach ($chargeListPaid as $chargePaid) {
-            $chargeList[] = $chargeFactory->createFromChargeFailed($chargePaid);
+            return [];
         }
 
         $listResponse = [];
-        $chargeService = new ChargeService();
-        foreach ($chargeList as $charge) {
+        foreach ($chargeListPaid as $charge) {
             $listResponse[] = $chargeService->cancelJustAtMundiPagg($charge);
         }
 
