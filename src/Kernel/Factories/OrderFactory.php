@@ -132,6 +132,10 @@ class OrderFactory implements FactoryInterface
             $status .= ucfirst(($baseStatus[$i]));
         }
 
+        if ($platformOrder->getCode() === null) {
+            throw new NotFoundException("Order not found: {$orderId}", 400);
+        }
+
         try {
             OrderStatus::$status();
         } catch (Throwable $e) {
