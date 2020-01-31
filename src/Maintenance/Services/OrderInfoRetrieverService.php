@@ -9,11 +9,13 @@ use Mundipagg\Core\Maintenance\Interfaces\InfoRetrieverServiceInterface;
 
 class OrderInfoRetrieverService implements InfoRetrieverServiceInterface
 {
+
     public function retrieveInfo($value)
     {
         $orderInfo = new \stdClass();
 
         $orderInfo->core = $this->getCoreOrderInfo($value);
+
         $orderInfo->platform = $this->getPlatformOrderInfo($value);
 
         return $orderInfo;
@@ -29,6 +31,8 @@ class OrderInfoRetrieverService implements InfoRetrieverServiceInterface
 */
         $platformOrder = new $platformOrderClass();
         $platformOrder->loadByIncrementId($orderIncrementId);
+
+
 
         if ($platformOrder->getCode() === null) {
             return null;
@@ -48,12 +52,15 @@ class OrderInfoRetrieverService implements InfoRetrieverServiceInterface
 
     private function getCoreOrderInfo($orderIncrementId)
     {
+
         $platformOrderClass = MPSetup::get(MPSetup::CONCRETE_PLATFORM_ORDER_DECORATOR_CLASS);
+
         /**
          *
  * @var PlatformOrderInterface $platformOrder 
 */
         $platformOrder = new $platformOrderClass();
+
         $platformOrder->loadByIncrementId($orderIncrementId);
 
         if ($platformOrder->getCode() === null) {

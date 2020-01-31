@@ -5,9 +5,15 @@ namespace Mundipagg\Core\Maintenance\Services;
 use DateTime;
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup;
 use Mundipagg\Core\Maintenance\Interfaces\InfoRetrieverServiceInterface;
+use test\Mockery\HasUnknownClassAsTypeHintOnMethod;
 
 class LogInfoRetrieverService implements InfoRetrieverServiceInterface
 {
+    /**
+     * @param $value
+     * @return \stdClass
+     * @throws \Exception
+     */
     public function retrieveInfo($value)
     {
         $logInfo = new \stdClass();
@@ -40,26 +46,40 @@ class LogInfoRetrieverService implements InfoRetrieverServiceInterface
 
         $files = $this->filterLogFilesByDate($value, $files);
 
+        if (!isset($_SERVER['REQUEST_URI'])) {
+            throw new \Exception('just for request');
+        }
+
         $requestURI = $_SERVER['REQUEST_URI'];
         $needle = 'log';
         if (strlen($value) > 0) {
             $needle .= "=$value";
         }
-        foreach ($files as $key => $file) {
+
+        $downloadURIs = [];
+        foreach ($files as $file) {
             $encoded = base64_encode($file);
 
             $uriZip =
-                ltrim(preg_replace(
-                    '/' . $needle . '/',
-                    'logDownload=zip:' . $encoded, $requestURI
-                ), '/');
+                ltrim(
+                    preg_replace(
+                        '/' . $needle . '/',
+                        'logDownload=zip:' . $encoded,
+                        $requestURI
+                    ),
+                    '/'
+                );
             $uriRaw =
-                ltrim(preg_replace(
-                    '/' . $needle . '/',
-                    'logDownload=raw:' . $encoded, $requestURI
-                ), '/');
+                ltrim(
+                    preg_replace(
+                        '/' . $needle . '/',
+                        'logDownload=raw:' . $encoded,
+                        $requestURI
+                    ),
+                    '/'
+                );
 
-            $donwloadURIs[] = [
+            $downloadURIs[] = [
                 'file' => $file,
                 'uriZip' => $uriZip,
                 'uriRaw' => $uriRaw
@@ -67,7 +87,7 @@ class LogInfoRetrieverService implements InfoRetrieverServiceInterface
         }
 
         $logInfo->files = $files;
-        $logInfo->donwloadURIs = $donwloadURIs;
+        $logInfo->donwloadURIs = $downloadURIs;
 
         return $logInfo;
     }

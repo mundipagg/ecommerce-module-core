@@ -4,6 +4,7 @@ namespace Mundipagg\Core\Test\Mock\Concrete;
 
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup;
 use Mundipagg\Core\Kernel\Factories\ConfigurationFactory;
+use MundiPagg\MundiPagg\Concrete\Magento2PlatformOrderDecorator;
 use PDO;
 use PDOException;
 
@@ -15,6 +16,8 @@ class PlatformCoreSetup extends AbstractModuleCoreSetup
         self::$config = [
             AbstractModuleCoreSetup::CONCRETE_DATABASE_DECORATOR_CLASS =>
                 PlatformDatabaseDecorator::class,
+            AbstractModuleCoreSetup::CONCRETE_PLATFORM_ORDER_DECORATOR_CLASS =>
+                PlatformOrderDecorator::class,
         ];
     }
 
@@ -30,31 +33,36 @@ class PlatformCoreSetup extends AbstractModuleCoreSetup
 
     protected function setModuleVersion()
     {
-        return "1.0.0";
+        AbstractModuleCoreSetup::$moduleVersion = "1.0.0";
     }
+
 
     protected function setPlatformVersion()
     {
-        return "1.0.0";
+        AbstractModuleCoreSetup::$platformVersion = "1.0.0";
     }
 
     protected function setLogPath()
     {
-        return "/tmp/logs";
+        self::$logPath = "/tmp/logs";
+       // return "/tmp/logs";
     }
 
+    /**
+     * @return PDO
+     */
     public static function getDatabaseAccessObject()
     {
-        $memory_db = new PDO('sqlite:./tests/mock/db_test.sqlite');
-        $memory_db->setAttribute( PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION );
+        $path = "sqlite:" . __DIR__ . "/../db_test.sqlite";
+
+        $memory_db = new PDO($path);
+        $memory_db->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
         try {
             $migrate = new Migrate($memory_db);
             $migrate->setUpConfiguration();
             $migrate->up();
-        }
-        catch (PDOException $e)
-        {
+        } catch (PDOException $e) {
             echo "Db Prepare Error: " . $e->getMessage();
             die();
         }
@@ -127,14 +135,14 @@ class PlatformCoreSetup extends AbstractModuleCoreSetup
             'testMode' => true,
             'hubInstallId' => NULL,
             'addressAttributes' => [
-                    'street' => 'street_1',
-                    'number' => 'street_2',
-                    'neighborhood' => 'street_4',
-                    'complement' => 'street_3',
+                'street' => 'street_1',
+                'number' => 'street_2',
+                'neighborhood' => 'street_4',
+                'complement' => 'street_3',
             ],
             'keys' => [
-                    'KEY_SECRET' => 'sk_test_0004RBxs0RhQP4qZ',
-                    'KEY_PUBLIC' => 'pk_test_0006gbVi8iEgb4oB',
+                'KEY_SECRET' => 'sk_test_0004RBxs0RhQP4qZ',
+                'KEY_PUBLIC' => 'pk_test_0006gbVi8iEgb4oB',
             ],
             'cardOperation' => 'auth_and_capture',
             'installmentsEnabled' => true,
@@ -173,7 +181,7 @@ class PlatformCoreSetup extends AbstractModuleCoreSetup
                 ]
             ],
             'storeId' => '1',
-            'methodsInherited' =>[],
+            'methodsInherited' => [],
             'parentId' => NULL,
             'parent' => NULL,
             'inheritAll' => false,

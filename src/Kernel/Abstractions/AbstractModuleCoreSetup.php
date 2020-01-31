@@ -165,7 +165,7 @@ abstract class AbstractModuleCoreSetup
         self::bootstrap();
 
         if (!isset(static::$config[$configId])) {
-            throw new Exception("Configuration $configId wasn't set!");
+            throw new \Exception("Configuration $configId wasn't set!");
         }
 
         return static::$config[$configId];
