@@ -6,26 +6,27 @@ use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
+use stdClass;
 
 final class ChargeFailed extends AbstractEntity
 {
     /**
-     * @var OrderId 
+     * @var OrderId
      */
     private $orderId;
 
     /**
-     * @var int 
+     * @var int
      */
     private $amount;
 
     /**
-     * @var string 
+     * @var string
      */
     private $code;
 
     /**
-     * @var ChargeStatus 
+     * @var ChargeStatus
      */
     private $status;
 
@@ -38,8 +39,8 @@ final class ChargeFailed extends AbstractEntity
     }
 
     /**
-     * @param  OrderId $orderId
-     * @return Charge
+     * @param OrderId $orderId
+     * @return $this
      */
     public function setOrderId(OrderId $orderId)
     {
@@ -56,8 +57,8 @@ final class ChargeFailed extends AbstractEntity
     }
 
     /**
-     * @param int $amount
-     * @return Charge
+     * @param $amount
+     * @return $this
      * @throws InvalidParamException
      */
     public function setAmount($amount)
@@ -89,8 +90,8 @@ final class ChargeFailed extends AbstractEntity
     }
 
     /**
-     * @param  string $code
-     * @return Charge
+     * @param $code
+     * @return $this
      */
     public function setCode($code)
     {
@@ -108,9 +109,8 @@ final class ChargeFailed extends AbstractEntity
     }
 
     /**
-     *
-     * @param  ChargeStatus $status
-     * @return Charge
+     * @param ChargeStatus $status
+     * @return $this
      */
     public function setStatus(ChargeStatus $status)
     {
@@ -119,11 +119,11 @@ final class ChargeFailed extends AbstractEntity
     }
 
     /**
-     * @return mixed|\stdClass
+     * @return mixed|stdClass
      */
     public function jsonSerialize()
     {
-        $obj = new \stdClass();
+        $obj = new stdClass();
 
         $obj->id = $this->getId();
         $obj->mundipaggId = $this->getMundipaggId();

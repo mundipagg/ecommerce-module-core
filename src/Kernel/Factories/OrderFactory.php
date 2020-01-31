@@ -117,11 +117,17 @@ class OrderFactory implements FactoryInterface
         return $order;
     }
 
+    /**
+     * @param PlatformOrderInterface $platformOrder
+     * @param $orderId
+     * @return Order
+     * @throws InvalidParamException
+     * @throws NotFoundException
+     */
     public function createFromPlatformData(
         PlatformOrderInterface $platformOrder,
         $orderId
-    )
-    {
+    ) {
         $order = new Order();
 
         $order->setMundipaggId(new OrderId($orderId));
@@ -133,7 +139,7 @@ class OrderFactory implements FactoryInterface
         }
 
         if ($platformOrder->getCode() === null) {
-            throw new NotFoundException("Order not found: {$orderId}", 400);
+            throw new NotFoundException("Order not found: {$orderId}");
         }
 
         try {
@@ -153,8 +159,7 @@ class OrderFactory implements FactoryInterface
     public function createFromSubscriptionData(
         Subscription $subscription,
         $platformOrderStatus
-    )
-    {
+    ) {
         $order = new Order();
 
         try {

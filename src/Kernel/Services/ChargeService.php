@@ -4,7 +4,6 @@ namespace Mundipagg\Core\Kernel\Services;
 
 use MundiAPILib\Models\GetChargeResponse;
 use Mundipagg\Core\Kernel\Aggregates\Charge;
-use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
 use Mundipagg\Core\Kernel\Interfaces\ChargeInterface;
 use Mundipagg\Core\Kernel\Repositories\ChargeRepository;
 use Mundipagg\Core\Kernel\Repositories\OrderRepository;
@@ -130,7 +129,6 @@ class ChargeService
 
     /**
      * @param Charge $charge
-     * @param int $amount
      * @return ServiceResponse
      */
     public function cancelJustAtMundiPagg(Charge $charge)
@@ -240,8 +238,8 @@ class ChargeService
     }
 
     /**
-     * @param \Mundipagg\Core\Kernel\Aggregates\Charge[] $listChargeFailed
-     * @return \Mundipagg\Core\Kernel\Aggregates\Charge[]|array
+     * @param Charge[] $listCharge
+     * @return Charge[]|array
      */
     public function getNotFailedOrCanceledCharges(array $listCharge)
     {
@@ -278,16 +276,16 @@ class ChargeService
             $extraValue = $charge->getPaidAmount() - $charge->getAmount();
             if ($extraValue > 0) {
                 $history .= ". " . $i18n->getDashboard(
-                        "Extra amount paid: %.2f",
-                        $moneyService->centsToFloat($extraValue)
-                    );
+                    "Extra amount paid: %.2f",
+                    $moneyService->centsToFloat($extraValue)
+                );
             }
 
             if ($extraValue < 0) {
                 $history .= ". " . $i18n->getDashboard(
-                        "Remaining amount: %.2f",
-                        $moneyService->centsToFloat(abs($extraValue))
-                    );
+                    "Remaining amount: %.2f",
+                    $moneyService->centsToFloat(abs($extraValue))
+                );
             }
 
             $refundedAmount = $charge->getRefundedAmount();
@@ -320,9 +318,10 @@ class ChargeService
         );
 
         $history .= ' ' . $i18n->getDashboard(
-                'Refunded amount: %.2f',
-                $amountInCurrency
-            );
+            'Refunded amount: %.2f',
+            $amountInCurrency
+        );
+
         $history .= " (" . $i18n->getDashboard('until now') . ")";
 
         return $history;

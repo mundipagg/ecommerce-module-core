@@ -2,9 +2,12 @@
 
 namespace Mundipagg\Core\Kernel\Repositories;
 
+use Exception;
 use Mundipagg\Core\Kernel\Abstractions\AbstractDatabaseDecorator;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Abstractions\AbstractRepository;
+use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
+use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Factories\ChargeFailedFactory;
 use Mundipagg\Core\Kernel\ValueObjects\AbstractValidString;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
@@ -12,8 +15,8 @@ use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
 final class ChargeFailedRepository extends AbstractRepository
 {
     /**
-     * @param  \Mundipagg\Core\Kernel\Aggregates\ChargeFailed $object
-     * @throws \Exception
+     * @param ChargeFailed|AbstractEntity $object
+     * @throws Exception
      */
     protected function create(AbstractEntity &$object)
     {
@@ -75,7 +78,8 @@ final class ChargeFailedRepository extends AbstractRepository
     /**
      * @param string $code
      * @return array|null
-     * @throws \Mundipagg\Core\Kernel\Exceptions\InvalidParamException
+     * @throws InvalidParamException
+     * @throws Exception
      */
     public function findByCode($code)
     {
@@ -97,13 +101,15 @@ final class ChargeFailedRepository extends AbstractRepository
         foreach ($result->rows as $chargeFailedDb) {
             $chargeListFailed[] = $factory->createFromDbData($chargeFailedDb);
         }
+
         return $chargeListFailed;
     }
 
     /**
      * @param OrderId $orderId
-     * @return AbstractEntity|\Mundipagg\Core\Kernel\Aggregates\ChargeFailed|null
-     * @throws \Mundipagg\Core\Kernel\Exceptions\InvalidParamException
+     * @return ChargeFailed[]
+     * @throws InvalidParamException
+     * @throws Exception
      */
     public function findByOrderId(OrderId $orderId)
     {

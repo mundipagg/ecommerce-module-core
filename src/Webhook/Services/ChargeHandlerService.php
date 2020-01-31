@@ -64,6 +64,7 @@ final class ChargeHandlerService
      * @param Webhook $webhook
      * @return array|ServiceResponse[]
      * @throws InvalidParamException
+     * @throws Exception
      */
     public function tryCancelMultiMethods(Webhook $webhook)
     {

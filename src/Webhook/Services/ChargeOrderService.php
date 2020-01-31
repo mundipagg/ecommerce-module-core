@@ -259,7 +259,7 @@ final class ChargeOrderService extends AbstractHandlerService
 
         $orderRepository->save($order);
         $history = $this->prepareHistoryComment($charge);
-        $order->getPlatformOrder()->addHistoryComment($history);
+        $order->getPlatformOrder()->addHistoryComment($history, false);
         $orderService->syncPlatformWith($order);
 
         $returnMessage = $this->prepareReturnMessage($charge);
