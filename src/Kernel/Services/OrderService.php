@@ -7,6 +7,8 @@ use Mundipagg\Core\Kernel\Aggregates\Order;
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup as MPSetup;
 use Mundipagg\Core\Kernel\Interfaces\PlatformOrderInterface;
 use Mundipagg\Core\Kernel\Repositories\OrderRepository;
+use Mundipagg\Core\Kernel\Services\ChargeFailedService;
+use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
 use Mundipagg\Core\Kernel\ValueObjects\OrderState;
 use Mundipagg\Core\Kernel\ValueObjects\OrderStatus;
 use Mundipagg\Core\Payment\Aggregates\Customer;
@@ -14,7 +16,7 @@ use Mundipagg\Core\Payment\Interfaces\ResponseHandlerInterface;
 use Mundipagg\Core\Payment\Services\ResponseHandlers\ErrorExceptionHandler;
 use Mundipagg\Core\Payment\ValueObjects\CustomerType;
 use Mundipagg\Core\Kernel\Factories\OrderFactory;
-
+use Mundipagg\Core\Kernel\Factories\ChargeFailedFactory;
 use Mundipagg\Core\Payment\Aggregates\Order as PaymentOrder;
 
 final class OrderService
@@ -108,15 +110,31 @@ final class OrderService
         $i18n = new LocalizationService();
 
         if (empty($results)) {
+            $order->setStatus(OrderStatus::canceled());
+            $order->getPlatformOrder()->setStatus(OrderStatus::canceled());
+
+            $orderRepository->save($order);
+            $order->getPlatformOrder()->save();
+
+            $statusOrderLabel = $order->getPlatformOrder()->getStatusLabel(
+                $order->getStatus()
+            );
+
+            $messageComplementEmail = $i18n->getDashboard(
+                'New order status: %s',
+                $statusOrderLabel
+            );
+
+            $sender = $order->getPlatformOrder()->sendEmail($messageComplementEmail);
+
             $order->getPlatformOrder()->addHistoryComment(
                 $i18n->getDashboard(
                     "Order '%s' canceled at Mundipagg",
                     $order->getMundipaggId()->getValue()
-                )
+                ),
+                $sender
             );
-            $order->setStatus(OrderStatus::canceled());
-            $orderRepository->save($order);
-            $order->getPlatformOrder()->save();
+
             return;
         }
 
@@ -168,6 +186,9 @@ final class OrderService
             $response = $apiService->createOrder($order);
 
             if (!$this->checkResponseStatus($response)) {
+
+                $this->persistListChargeFailed($response);
+
                 $i18n = new LocalizationService();
                 $message = $i18n->getDashboard("Can't create order.");
 
@@ -188,10 +209,11 @@ final class OrderService
 
             return [$response];
         } catch(\Exception $e) {
-                $exceptionHandler = new ErrorExceptionHandler;
-                $paymentOrder = new PaymentOrder;
+                $exceptionHandler = new ErrorExceptionHandler();
+                $paymentOrder = new PaymentOrder();
                 $paymentOrder->setCode($platformOrder->getcode());
                 $frontMessage = $exceptionHandler->handle($e, $paymentOrder);
+
                 throw new \Exception($frontMessage, 400);
         }
     }
@@ -211,8 +233,7 @@ final class OrderService
 
     public function extractPaymentOrderFromPlatformOrder(
         PlatformOrderInterface $platformOrder
-    )
-    {
+    ) {
         $moduleConfig = MPSetup::getModuleConfiguration();
 
         $moneyService = new MoneyService();
@@ -290,5 +311,19 @@ final class OrderService
         }
 
         return true;
+    }
+
+    private function persistListChargeFailed($response)
+    {
+        $chargeFailedFactory = new ChargeFailedFactory();
+        $chargeFailedService = new ChargeFailedService();
+        foreach ($response['charges'] as $chargeResponse) {
+            $chargeFailed = $chargeFailedFactory->createFromPostWithOrderIdData(
+                $chargeResponse,
+                (new OrderId($response['id']))
+            );
+
+            $chargeFailedService->persistChargeFailed($chargeFailed);
+        }
     }
 }

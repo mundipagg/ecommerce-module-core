@@ -190,7 +190,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
         if ($paidAmount < 0) {
             $paidAmount = 0;
         }
-        $this->paidAmount = $paidAmount;
+        $this->paidAmount = (int)$paidAmount;
         return $this;
     }
 
@@ -367,6 +367,11 @@ final class Charge extends AbstractEntity implements ChargeInterface
             return [];
         }
         return $this->transactions;
+    }
+
+    public function failed()
+    {
+        $this->status = ChargeStatus::failed();
     }
 
     public function updateTransaction(Transaction $updatedTransaction, $overwriteId = false)

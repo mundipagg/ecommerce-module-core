@@ -6,13 +6,13 @@ use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Aggregates\Charge;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Interfaces\FactoryInterface;
-//use Mundipagg\Core\Kernel\Factories\TransactionFactory;
 use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 use Mundipagg\Core\Kernel\ValueObjects\Id\ChargeId;
 use Mundipagg\Core\Kernel\ValueObjects\Id\CustomerId;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
 use Mundipagg\Core\Payment\Factories\CustomerFactory;
 use Mundipagg\Core\Payment\Repositories\CustomerRepository;
+use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
 use Throwable;
 
 /**
@@ -211,5 +211,23 @@ class ChargeFactory implements FactoryInterface
             $lastTransaction->setChargeId($charge->getMundipaggId());
             $charge->addTransaction($lastTransaction);
         }
+    }
+
+    /**
+     * @param ChargeFailed $chargeFailed
+     * @return Charge
+     * @throws InvalidParamException
+     */
+    public function createFromChargeFailed(ChargeFailed $chargeFailed)
+    {
+        $charge = new Charge();
+
+        $charge->setMundipaggId($chargeFailed->getMundipaggId());
+        $charge->setOrderId($chargeFailed->getOrderId());
+        $charge->setCode($chargeFailed->getCode());
+        $charge->setAmount($chargeFailed->getAmount());
+        $charge->setStatus($chargeFailed->getStatus());
+
+        return $charge;
     }
 }

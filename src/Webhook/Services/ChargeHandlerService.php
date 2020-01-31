@@ -3,8 +3,15 @@
 namespace Mundipagg\Core\Webhook\Services;
 
 use Exception;
+use Mundipagg\Core\Kernel\Aggregates\Charge;
+use Mundipagg\Core\Kernel\Aggregates\ChargeFailed;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Exceptions\NotFoundException;
+use Mundipagg\Core\Kernel\Factories\ChargeFactory;
+use Mundipagg\Core\Kernel\Responses\ServiceResponse;
+use Mundipagg\Core\Kernel\Services\APIService;
+use Mundipagg\Core\Kernel\Services\ChargeService;
+use Mundipagg\Core\Kernel\Services\ChargeFailedService;
 use Mundipagg\Core\Webhook\Aggregates\Webhook;
 
 final class ChargeHandlerService
@@ -45,6 +52,53 @@ final class ChargeHandlerService
     public function handle(Webhook $webhook)
     {
         $this->build($webhook->getComponent());
-        return $this->listChargeHandleService->handle($webhook);
+        $multiMeiosCanceled = $this->tryCancelMultiMethods($webhook);
+
+        return array_merge(
+            $this->listChargeHandleService->handle($webhook),
+            $multiMeiosCanceled
+        );
+    }
+
+    /**
+     * @param Webhook $webhook
+     * @return array|ServiceResponse[]
+     * @throws InvalidParamException
+     */
+    public function tryCancelMultiMethods(Webhook $webhook)
+    {
+        /** @var Charge $charge  */
+        $charge = $webhook->getEntity();
+
+        $chargeFailedService = new ChargeFailedService();
+
+        /** @var ChargeFailed $chargeFailedList */
+        $chargeFailedList = $chargeFailedService->findByCode($charge->getCode());
+
+        if (empty($chargeFailedList)) {
+            return [];
+        }
+
+        $chargeList = [];
+        $chargeFactory = new ChargeFactory();
+        foreach ($chargeFailedList as $chargeFailed) {
+            $chargeList[] = $chargeFactory->createFromChargeFailed($chargeFailed);
+        }
+
+        $chargeService = new ChargeService();
+        $chargeListPaid = $chargeService->getNotFailedOrCanceledCharges(
+            $chargeList
+        );
+
+        if (empty($chargeListPaid) && count($chargeList) <= 1) {
+            return [];
+        }
+
+        $listResponse = [];
+        foreach ($chargeListPaid as $charge) {
+            $listResponse[] = $chargeService->cancelJustAtMundiPagg($charge);
+        }
+
+        return $listResponse;
     }
 }

@@ -122,7 +122,7 @@ class OrderFactory implements FactoryInterface
         $orderId
     )
     {
-        $order = new Order;
+        $order = new Order();
 
         $order->setMundipaggId(new OrderId($orderId));
 
@@ -130,6 +130,10 @@ class OrderFactory implements FactoryInterface
         $status = $baseStatus[0];
         for ($i = 1; $i < count($baseStatus); $i++) {
             $status .= ucfirst(($baseStatus[$i]));
+        }
+
+        if ($platformOrder->getCode() === null) {
+            throw new NotFoundException("Order not found: {$orderId}", 400);
         }
 
         try {
@@ -164,7 +168,10 @@ class OrderFactory implements FactoryInterface
 
         $order->setStatus(OrderStatus::$platformOrderStatus());
         $order->setPlatformOrder($subscription->getPlatformOrder());
-        $order->addCharge($subscription->getCurrentCharge());
+
+        if ($subscription->getCurrentCharge()) {
+            $order->addCharge($subscription->getCurrentCharge());
+        }
 
         if ($subscription->getCustomer()) {
             $order->setCustomer($subscription->getCustomer());

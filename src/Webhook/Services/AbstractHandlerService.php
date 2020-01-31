@@ -8,6 +8,7 @@ use Mundipagg\Core\Kernel\Exceptions\NotFoundException;
 use Mundipagg\Core\Kernel\Services\LocalizationService;
 use Mundipagg\Core\Webhook\Aggregates\Webhook;
 use Mundipagg\Core\Webhook\Exceptions\WebhookHandlerNotFoundException;
+use Mundipagg\Core\Webhook\Services\ExceptionOrderHandlerService;
 
 abstract class AbstractHandlerService
 {
@@ -51,6 +52,7 @@ abstract class AbstractHandlerService
 
         if (method_exists($this, $handler)) {
             $this->loadOrder($webhook);
+            
             $platformOrder = $this->order->getPlatformOrder();
 
             if ($platformOrder->getIncrementId() !== null) {
@@ -58,7 +60,7 @@ abstract class AbstractHandlerService
                 $platformOrder->save();
                 return $this->$handler($webhook);
             }
-
+            
             throw new NotFoundException("Order #{$webhook->getEntity()->getCode()} not found.");
         }
 
