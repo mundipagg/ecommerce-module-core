@@ -30,7 +30,7 @@ class VersionInfoRetrieverServiceTest extends AbstractSetupTest
         );
 
         $this->assertEquals('1.0.0', $retrieveInfo->moduleVersion);
-        $this->assertEquals('1.11.0', $retrieveInfo->coreVersion);
+        $this->assertEquals('1.12.1', $retrieveInfo->coreVersion);
         $this->assertEquals('1.0.0', $retrieveInfo->platformVersion);
     }
 }

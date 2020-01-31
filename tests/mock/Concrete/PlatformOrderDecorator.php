@@ -92,7 +92,7 @@ class PlatformOrderDecorator extends AbstractPlatformOrderDecorator
         $this->platformOrder = $this->orderFactory;
     }
 
-    protected function addMPHistoryComment($message)
+    protected function addMPHistoryComment($message, $notifyCustomer)
     {
         $historyMethod = 'addCommentToStatusHistory';
         if (!method_exists($this->platformOrder, $historyMethod)) {
@@ -877,5 +877,23 @@ class PlatformOrderDecorator extends AbstractPlatformOrderDecorator
     public function getTotalCanceled()
     {
         return $this->platformOrder->getTotalCanceled();
+    }
+
+    /**
+     * @param string $message
+     * @return bool
+     */
+    public function sendEmail($message)
+    {
+        // TODO: Implement sendEmail() method.
+    }
+
+    /**
+     * @param string $orderStatus
+     * @return string
+     */
+    public function getStatusLabel(OrderStatus $orderStatus)
+    {
+        // TODO: Implement getStatusLabel() method.
     }
 }
