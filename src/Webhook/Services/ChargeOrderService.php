@@ -84,8 +84,11 @@ final class ChargeOrderService extends AbstractHandlerService
         $platformOrder->save();
 
         $returnMessage = $this->prepareReturnMessage($charge);
+
+        $response = $this->tryCancelMultiMethodsWithOrder();
+        
         $result = [
-            "message" => $returnMessage,
+            "message" => $returnMessage . ' - '. $response,
             "code" => 200
         ];
 
@@ -134,11 +137,9 @@ final class ChargeOrderService extends AbstractHandlerService
         $orderService->syncPlatformWith($order);
 
         $returnMessage = $this->prepareReturnMessage($charge);
-
-        $response = $this->tryCancelMultiMethodsWithOrder();
-
+        
         $result = [
-            "message" => $returnMessage . ' - ' . $response,
+            "message" => $returnMessage,
             "code" => 200
         ];
 
@@ -333,7 +334,6 @@ final class ChargeOrderService extends AbstractHandlerService
                 MPSetup::get(MPSetup::CONCRETE_PLATFORM_ORDER_DECORATOR_CLASS);
 
             /**
-             *
              * @var PlatformOrderInterface $order
              */
             $order = new $orderDecoratorClass();

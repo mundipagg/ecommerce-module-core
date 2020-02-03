@@ -326,4 +326,34 @@ class ChargeService
 
         return $history;
     }
+
+    /**
+     * @param $code
+     * @return array|null
+     * @throws Exception
+     */
+    public function findByCode($code)
+    {
+        $chargeRepository = new ChargeRepository();
+        
+        try {
+            return $chargeRepository->findByCode($code);
+        } catch (Exception $exception) {
+            throw new Exception($exception, $exception->getCode());
+        }
+    }
+
+    /**
+     * @param Charge $charge
+     * @throws Exception
+     */
+    public function save(Charge $charge)
+    {
+        $chargeRepository = new ChargeRepository();
+        try {
+            $chargeRepository->save();
+        } catch (Exception $exception) {
+            throw new Exception($exception, $exception->getCode());
+        }
+    }
 }

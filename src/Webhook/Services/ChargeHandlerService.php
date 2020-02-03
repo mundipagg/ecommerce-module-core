@@ -11,7 +11,6 @@ use Mundipagg\Core\Kernel\Factories\ChargeFactory;
 use Mundipagg\Core\Kernel\Responses\ServiceResponse;
 use Mundipagg\Core\Kernel\Services\APIService;
 use Mundipagg\Core\Kernel\Services\ChargeService;
-use Mundipagg\Core\Kernel\Services\ChargeFailedService;
 use Mundipagg\Core\Webhook\Aggregates\Webhook;
 
 final class ChargeHandlerService
@@ -70,23 +69,16 @@ final class ChargeHandlerService
     {
         /** @var Charge $charge  */
         $charge = $webhook->getEntity();
+        $chargeService = new ChargeService();
 
-        $chargeFailedService = new ChargeFailedService();
 
-        /** @var ChargeFailed $chargeFailedList */
-        $chargeFailedList = $chargeFailedService->findByCode($charge->getCode());
+        /** @var Charge $chargeList */
+        $chargeList = $chargeService->findByCode($charge->getCode());
 
-        if (empty($chargeFailedList)) {
+        if (empty($chargeList)) {
             return [];
         }
 
-        $chargeList = [];
-        $chargeFactory = new ChargeFactory();
-        foreach ($chargeFailedList as $chargeFailed) {
-            $chargeList[] = $chargeFactory->createFromChargeFailed($chargeFailed);
-        }
-
-        $chargeService = new ChargeService();
         $chargeListPaid = $chargeService->getNotFailedOrCanceledCharges(
             $chargeList
         );

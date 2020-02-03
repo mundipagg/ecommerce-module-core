@@ -7,6 +7,7 @@ use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Abstractions\AbstractRepository;
 use Mundipagg\Core\Kernel\Aggregates\Charge;
 use Mundipagg\Core\Kernel\Factories\ChargeFactory;
+use Mundipagg\Core\Kernel\Factories\ChargeFailedFactory;
 use Mundipagg\Core\Kernel\ValueObjects\AbstractValidString;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
 
@@ -203,5 +204,34 @@ final class ChargeRepository extends AbstractRepository
         $factory = new ChargeFactory();
 
         return $factory->createFromDbData($result->row);
+    }
+
+    /**
+     * @param $code
+     * @return Charge[]
+     * @throws \Exception
+     */
+    public function findByCode($code)
+    {
+        $chargeTable = $this->db->getTable(
+            AbstractDatabaseDecorator::TABLE_CHARGE
+        );
+
+        $query = "SELECT * FROM `{$chargeTable}`";
+        $query .= "WHERE code = '{$code}';";
+
+        $result = $this->db->fetch($query);
+
+        if ($result->num_rows === 0) {
+            return [];
+        }
+
+        $factory = new ChargeFactory();
+        $chargeList = [];
+        foreach ($result->rows as $chargedDb) {
+            $chargeList[] = $factory->createFromDbData($chargedDb);
+        }
+
+        return $chargeList;
     }
 }

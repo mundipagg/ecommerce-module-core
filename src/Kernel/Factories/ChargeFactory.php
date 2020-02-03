@@ -212,22 +212,4 @@ class ChargeFactory implements FactoryInterface
             $charge->addTransaction($lastTransaction);
         }
     }
-
-    /**
-     * @param ChargeFailed $chargeFailed
-     * @return Charge
-     * @throws InvalidParamException
-     */
-    public function createFromChargeFailed(ChargeFailed $chargeFailed)
-    {
-        $charge = new Charge();
-
-        $charge->setMundipaggId($chargeFailed->getMundipaggId());
-        $charge->setOrderId($chargeFailed->getOrderId());
-        $charge->setCode($chargeFailed->getCode());
-        $charge->setAmount($chargeFailed->getAmount());
-        $charge->setStatus($chargeFailed->getStatus());
-
-        return $charge;
-    }
 }

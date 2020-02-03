@@ -16,7 +16,7 @@ use Mundipagg\Core\Payment\Interfaces\ResponseHandlerInterface;
 use Mundipagg\Core\Payment\Services\ResponseHandlers\ErrorExceptionHandler;
 use Mundipagg\Core\Payment\ValueObjects\CustomerType;
 use Mundipagg\Core\Kernel\Factories\OrderFactory;
-use Mundipagg\Core\Kernel\Factories\ChargeFailedFactory;
+use Mundipagg\Core\Kernel\Factories\ChargeFactory;
 use Mundipagg\Core\Payment\Aggregates\Order as PaymentOrder;
 
 final class OrderService
@@ -323,16 +323,15 @@ final class OrderService
      */
     private function persistListChargeFailed($response)
     {
-        $chargeFailedFactory = new ChargeFailedFactory();
-        $chargeFailedService = new ChargeFailedService();
+        $chargeFactory = new ChargeFactory();
+        $chargeService = new ChargeService();
 
         foreach ($response['charges'] as $chargeResponse) {
-            $chargeFailed = $chargeFailedFactory->createFromPostWithOrderIdData(
-                $chargeResponse,
-                (new OrderId($response['id']))
+            $charge = $chargeFailedFactory->createFromPostData(
+                $chargeResponse
             );
 
-            $chargeFailedService->persistChargeFailed($chargeFailed);
+            $chargeService->save($charge);
         }
     }
 }
