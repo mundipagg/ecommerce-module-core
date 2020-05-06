@@ -81,6 +81,11 @@ class PTBR extends AbstractI18NTable
             "It's not possible to have any other product with a product plan" => 'Não é possível ter nenhum outro tipo de produto no carrinho, junto com um produto plano',
             'You must have only one product plan in the cart' => 'Você só pode ter um produto plano no carrinho',
             "The sum of payments is different than the order amount!" => "A soma do total do pagamento é diferente do que o total do pedido!",
+            "The sum of payment amounts is bigger than the amount of the order!" => "A soma total do pagamento é maior do que o total do pedido!",
+            "You can\'t use a saved credit card of a fresh new customer." => "Você não pode usar um cartão de crédito salvo de um novo cliente.",
+            "To use a saved credit card payment in an order you must add a customer to it." => "Para fazer um pagamento de um pedido com um cartão de crédito salvo você precisa adicionar um cliente a ele.",
+            "you must add a customer to it." => "você precisa adicionar um cliente a ele.",
+            "The saved credit card informed doesn\'t belong to the informed customer." => "O cartão de crédito salvo informado não pertence ao cliente."
         ];
     }
 }

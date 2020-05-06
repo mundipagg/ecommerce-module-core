@@ -11,6 +11,7 @@ use Mundipagg\Core\Payment\Traits\WithAmountTrait;
 use Mundipagg\Core\Payment\Traits\WithCustomerTrait;
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup as MPSetup;
 use Mundipagg\Core\Kernel\ValueObjects\PaymentMethod as PaymentMethod;
+use Mundipagg\Core\Kernel\Services\LocalizationService;
 
 final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInterface
 {
@@ -161,10 +162,10 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
         }
 
         if ($currentAmount > $this->amount) {
-            throw new \Exception(
-                'The sum of payment amounts is bigger than the amount of the order!',
-                400
-            );
+            $i18n = new LocalizationService();
+            $message = $i18n->getDashboard("The sum of payment amounts is bigger than the amount of the order!");
+
+            throw new \Exception($message, 400);
         }
     }
 
@@ -194,27 +195,25 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
 
     private function validateSavedCreditCardPayment(SavedCreditCardPayment $payment)
     {
+        $i18n = new LocalizationService();
+
         if ($this->customer === null) {
-            throw new \Exception(
-                'To use a saved credit card payment in an order ' .
-                'you must add a customer to it.',
-                400
-            );
+            $message = $i18n->getDashboard("To use a saved credit card payment in an order you must add a customer to it.");
+
+            throw new \Exception($message, 400);
         }
 
         $customerId = $this->customer->getMundipaggId();
         if ($customerId === null) {
-            throw new \Exception(
-                'You can\'t use a saved credit card of a fresh new customer',
-                400
-            );
+            $message = $i18n->getDashboard("You can\'t use a saved credit card of a fresh new customer.");
+
+            throw new \Exception($message, 400);
         }
 
         if (!$customerId->equals($payment->getOwner())) {
-            throw new \Exception(
-                'The saved credit card informed doesn\'t belong to the informed customer.',
-                400
-            );
+            $message = $i18n->getDashboard("The saved credit card informed doesn\'t belong to the informed customer.");
+
+            throw new \Exception($message, 400);
         }
     }
 
