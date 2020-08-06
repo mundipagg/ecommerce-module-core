@@ -280,10 +280,9 @@ final class OrderService
         }
 
         if (!$order->isPaymentSumCorrect()) {
-            throw new \Exception(
-                'The sum of payments is different than the order amount!',
-                400
-            );
+            $i18n = new LocalizationService();
+            $message = $i18n->getDashboard("The sum of payments is different than the order amount!");
+            throw new \Exception($message, 400);
         }
 
         $items = $platformOrder->getItemCollection();
