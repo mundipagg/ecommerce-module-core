@@ -6,26 +6,43 @@ use Exception;
 use Mundipagg\Core\Kernel\Abstractions\AbstractDatabaseDecorator;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Abstractions\AbstractRepository;
+use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\ValueObjects\AbstractValidString;
+use Mundipagg\Core\Split\Aggregates\Recipient;
+use Mundipagg\Core\Split\Aggregates\TransferSettings;
 use Mundipagg\Core\Split\Factories\RecipientFactory;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
 use Mundipagg\Core\Split\Interfaces\RecipientInterface;
+use ReflectionException;
 
 class RecipientRepository extends AbstractRepository
 {
+    /**
+     * @var string
+     */
+    private $table;
+
+    /**
+     * RecipientRepository constructor.
+     * @throws Exception
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->table = $this->db->getTable(
+            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT
+        );
+    }
+
     /**
      * @param RecipientInterface|AbstractEntity $object
      * @throws Exception
      */
     protected function create(AbstractEntity &$object)
     {
-        $recipientTable = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT
-        );
-
         $query = "
           INSERT INTO 
-            {$recipientTable} 
+            {$this->table} 
             (
                 name,
                 email,
@@ -58,14 +75,25 @@ class RecipientRepository extends AbstractRepository
 
         $this->db->query($query);
 
+        $recipientId = $this->db->getLastId();
+        $object->setId($recipientId);
+
         /**
          * @var $bankAccount AbstractEntity|BankAccountInterface
          */
         $bankAccount = $object->getBankAccount();
-        $bankAccount->setRecipientId($this->db->getLastId());
+        $bankAccount->setRecipientId($recipientId);
 
         $recipientBankAccountRepository = new RecipientBankAccountRepository();
         $recipientBankAccountRepository->save($bankAccount);
+
+        /**
+         * @var $transferSettings AbstractEntity|TransferSettings
+         */
+        $transferSettings = $object->getTransferSettings();
+        $transferSettings->setRecipientId($recipientId);
+        $transferSettingBankAccountRepository = new TransferSettingRepository();
+        $transferSettingBankAccountRepository->save($transferSettings);
     }
 
     /**
@@ -74,14 +102,10 @@ class RecipientRepository extends AbstractRepository
      */
     protected function update(AbstractEntity &$object)
     {
-        $table = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT
-        );
-
         $metaData = json_encode($object->getMetadata());
 
         $query = "
-            UPDATE {$table} SET
+            UPDATE {$this->table} SET
                 name = '{$object->getName()}',
                 email = '{$object->getEmail()}',
                 description = '{$object->getDescription()}',
@@ -97,6 +121,7 @@ class RecipientRepository extends AbstractRepository
         $this->db->query($query);
 
         if ($object->getBankAccount() !== null) {
+
             /**
              * @var $bankAccount AbstractEntity|BankAccountInterface
              */
@@ -106,6 +131,16 @@ class RecipientRepository extends AbstractRepository
             $recipientBankAccountRepository = new RecipientBankAccountRepository();
             $recipientBankAccountRepository->save($bankAccount);
         }
+
+        if ($object->getTransferSettings() !== null) {
+
+            /**
+             * @var $transferSettings AbstractEntity|TransferSettings
+             */
+            $transferSettings = $object->getTransferSettings();
+            $transferSettingBankAccountRepository = new TransferSettingRepository();
+            $transferSettingBankAccountRepository->save($transferSettings);
+        }
     }
 
     public function delete(AbstractEntity $object)
@@ -113,13 +148,16 @@ class RecipientRepository extends AbstractRepository
         // TODO: Implement delete() method.
     }
 
+    /**
+     * @param $id
+     * @return AbstractEntity|Recipient|null
+     * @throws ReflectionException
+     * @throws InvalidParamException
+     * @throws Exception
+     */
     public function find($id)
     {
-        $table = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT
-        );
-
-        $query = "SELECT * FROM {$table} WHERE id = {$id}";
+        $query = "SELECT * FROM {$this->table} WHERE id = {$id}";
         $result = $this->db->fetch($query);
 
         if ($result->num_rows === 0) {
@@ -130,6 +168,10 @@ class RecipientRepository extends AbstractRepository
         $bankAccount = $recipientBankAccountRepository->findByRecipientId($id);
         $result->row['bank_account'] = $bankAccount;
 
+        $transferSettingBankAccountRepository = new TransferSettingRepository();
+        $transferSettings = $transferSettingBankAccountRepository->findByRecipientId($id);
+        $result->row['transfer_settings'] = $transferSettings;
+
         $factory = new RecipientFactory();
         return $factory->createFromDbData($result->row);
     }
@@ -137,6 +179,41 @@ class RecipientRepository extends AbstractRepository
     public function findByMundipaggId(AbstractValidString $mundipaggId)
     {
         // TODO: Implement findByMundipaggId() method.
+    }
+
+    /**
+     * @return Recipient[]|null
+     * @throws InvalidParamException
+     * @throws ReflectionException
+     * @throws Exception
+     */
+    public function getMarketplaceUser()
+    {
+        $query = "SELECT * FROM {$this->table} WHERE is_marketplace = TRUE";
+
+        $result = $this->db->fetch($query);
+
+        if ($result->num_rows === 0) {
+            return null;
+        }
+
+        $recipientList = [];
+        foreach ($result->rows as $row) {
+            $recipientBankAccountRepository = new RecipientBankAccountRepository();
+            $bankAccount = $recipientBankAccountRepository->findByRecipientId($row['id']);
+            $result->row['bank_account'] = $bankAccount;
+
+            $transferSettingBankAccountRepository = new TransferSettingRepository();
+            $transferSettings = $transferSettingBankAccountRepository->findByRecipientId(
+                $row['id']
+            );
+            $result->row['transfer_settings'] = $transferSettings;
+
+            $factory = new RecipientFactory();
+            $recipientList[] = $factory->createFromDbData($result->row);
+        }
+
+        return $recipientList;
     }
 
     public function listEntities($limit, $listDisabled)
