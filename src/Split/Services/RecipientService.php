@@ -11,11 +11,13 @@ use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Services\LogService;
 use Mundipagg\Core\Kernel\ValueObjects\AbstractValidString;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
+use Mundipagg\Core\Split\Interfaces\TransferSettingsInterface;
 use Mundipagg\Core\Split\ValueObjects\StatusRecipient;
 use Mundipagg\Core\Split\Interfaces\RecipientInterface;
 use Mundipagg\Core\Split\Interfaces\RecipientServiceInterface;
 use Mundipagg\Core\Split\Repositories\RecipientRepository;
 use Mundipagg\Core\Split\ValueObjects\Id\RecipientId;
+use ReflectionException;
 
 class RecipientService implements RecipientServiceInterface
 {
@@ -49,24 +51,60 @@ class RecipientService implements RecipientServiceInterface
      * @return AbstractEntity|RecipientInterface
      * @throws APIException
      * @throws InvalidParamException
+     * @throws ReflectionException
      */
     public function save(RecipientInterface $recipient)
     {
         if ($recipient->getId() === null) {
-            $result = $this->createRecipientAtMundipagg($recipient);
-            $recipient->setMundipaggId(new RecipientId($result->id));
-            $recipient->setStatus(new StatusRecipient($result->status));
+            $this->create($recipient);
         }
 
         if ($recipient->getId() !== null) {
-            $this->updateRecipientAtMundipagg($recipient);
-            $this->updateRecipientBankAccountAtMundipagg($recipient->getBankAccount(), $recipient->getMundipaggId());
-            //update contabancaria aqui
+            $this->update($recipient);
         }
 
-        $this->recipientRepository->save($recipient);
-
         return $this->recipientRepository->find($recipient->getId());
+    }
+
+    /**
+     * @param RecipientInterface|AbstractEntity $recipient
+     * @throws APIException
+     * @throws InvalidParamException
+     */
+    public function create(RecipientInterface $recipient)
+    {
+        $result = $this->createRecipientAtMundipagg($recipient);
+        $recipient->setMundipaggId(new RecipientId($result->id));
+        $recipient->setStatus(new StatusRecipient($result->status));
+
+        $this->recipientRepository->save($recipient);
+    }
+
+    /**
+     * @param RecipientInterface|AbstractEntity $recipient
+     * @throws APIException
+     * @throws InvalidParamException
+     * @throws ReflectionException
+     */
+    public function update(RecipientInterface $recipient)
+    {
+        $recipientPrevious = $this->recipientRepository->find($recipient->getId());
+
+        $this->updateRecipientAtMundipagg($recipient);
+
+        if (!$recipientPrevious->getBankAccount()->equals($recipient->getBankAccount())) {
+            $this->updateRecipientBankAccountAtMundipagg(
+                $recipient->getBankAccount(),
+                $recipient->getMundipaggId()
+            );
+        }
+
+//        $this->updateRecipientTransferSettingsAtMundipagg(
+//            $recipient->getTransferSettings(),
+//            $recipient->getMundipaggId()
+//        );
+
+        $this->recipientRepository->save($recipient);
     }
 
     /**
@@ -104,10 +142,27 @@ class RecipientService implements RecipientServiceInterface
         BankAccountInterface $recipientBankAccount,
         RecipientId $mundipaggRecipientId
     ) {
-        $recipientBankAccountRequest = $recipientBankAccount->convertToSdkRequest();
+        $bankAccountRequest = $recipientBankAccount->convertToSdkRequest();
         return $this->mundiAPIClient->getRecipients()->updateRecipientDefaultBankAccount(
             $mundipaggRecipientId->getValue(),
-            $recipientBankAccountRequest
+            $bankAccountRequest
+        );
+    }
+
+    /**
+     * @param TransferSettingsInterface $transferSettings
+     * @param RecipientId|AbstractValidString $mundipaggId
+     * @return mixed
+     * @throws APIException
+     */
+    public function updateRecipientTransferSettingsAtMundipagg(
+        TransferSettingsInterface $transferSettings,
+        RecipientId $mundipaggId
+    ) {
+        $transferSettingsRequest = $transferSettings->convertToSdkRequestUpdate();
+        return $this->mundiAPIClient->getRecipients()->updateRecipientTransferSettings(
+            $mundipaggId->getValue(),
+            $transferSettingsRequest
         );
     }
 }
