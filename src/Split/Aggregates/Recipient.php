@@ -2,12 +2,15 @@
 
 namespace Mundipagg\Core\Split\Aggregates;
 
+use Exception;
 use MundiAPILib\Models\CreateBankAccountRequest;
 use MundiAPILib\Models\CreateRecipientRequest;
+use MundiAPILib\Models\CreateTransferSettingsRequest;
 use MundiAPILib\Models\UpdateRecipientRequest;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
+use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Split\Interfaces\TransferSettingsInterface;
 use Mundipagg\Core\Split\ValueObjects\StatusRecipient;
-use Mundipagg\Core\Payment\Aggregates\Customer;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
 use Mundipagg\Core\Split\Interfaces\RecipientInterface;
 
@@ -29,7 +32,7 @@ class Recipient extends AbstractEntity implements RecipientInterface
     private $description;
 
     /**
-     * @var \Mundipagg\Core\Kernel\ValueObjects\Type
+     * @var Type
      */
     private $type;
 
@@ -62,6 +65,11 @@ class Recipient extends AbstractEntity implements RecipientInterface
      * @var string
      */
     private $document;
+
+    /**
+     * @var TransferSettingsInterface
+     */
+    private $transferSettings;
 
     /**
      * @return int
@@ -108,22 +116,17 @@ class Recipient extends AbstractEntity implements RecipientInterface
     }
 
     /**
-     * @param string $email
-     * @return Customer
-     * @throws \Exception
+     * @param $email
+     * @return $this|RecipientInterface
+     * @throws Exception
      */
     public function setEmail($email)
     {
         $this->email = substr($email, 0, 64);
 
         if (empty($this->email)) {
-
-            $message = $this->i18n->getDashboard(
-                "The %s should not be empty!",
-                "email"
-            );
-
-            throw new \Exception($message, 400);
+            $message = "The email should not be empty!";
+            throw new Exception($message, 400);
         }
 
         return $this;
@@ -155,28 +158,21 @@ class Recipient extends AbstractEntity implements RecipientInterface
     /**
      * @param $document
      * @return $this
-     * @throws \Exception
+     * @throws Exception
      */
     public function setDocument($document)
     {
         $this->document = substr($document, 0, 16);
 
         if (empty($this->document)) {
-
-            $inputName = $this->i18n->getDashboard('document');
-            $message = $this->i18n->getDashboard(
-                "The %s should not be empty!",
-                $inputName
-            );
-
-            throw new \Exception($message, 400);
+            throw new Exception("The %s should not be empty!", 400);
         }
 
         return $this;
     }
 
     /**
-     * @return \Mundipagg\Core\Kernel\ValueObjects\Type
+     * @return Type
      */
     public function getType()
     {
@@ -184,10 +180,10 @@ class Recipient extends AbstractEntity implements RecipientInterface
     }
 
     /**
-     * @param \Mundipagg\Core\Kernel\ValueObjects\Type $type
+     * @param Type $type
      * @return Recipient
      */
-    public function setType(\Mundipagg\Core\Kernel\ValueObjects\Type $type)
+    public function setType(Type $type)
     {
         $this->type = $type;
         return $this;
@@ -208,6 +204,24 @@ class Recipient extends AbstractEntity implements RecipientInterface
     public function setBankAccount(BankAccountInterface $bankAccount)
     {
         $this->bankAccount = $bankAccount;
+        return $this;
+    }
+
+    /**
+     * @return TransferSettingsInterface
+     */
+    public function getTransferSettings()
+    {
+        return $this->transferSettings;
+    }
+
+    /**
+     * @param TransferSettingsInterface $transferSettings
+     * @return Recipient
+     */
+    public function setTransferSettings(TransferSettingsInterface $transferSettings)
+    {
+        $this->transferSettings = $transferSettings;
         return $this;
     }
 
@@ -249,7 +263,7 @@ class Recipient extends AbstractEntity implements RecipientInterface
 
     public function jsonSerialize()
     {
-        return ["teste" => "ok"];
+        return ["name" => $this->getName()];
     }
 
     /**
@@ -258,27 +272,38 @@ class Recipient extends AbstractEntity implements RecipientInterface
     public function convertToSdkRequest()
     {
         $recipientRequest = new CreateRecipientRequest();
-
         $recipientRequest->name = $this->getName();
         $recipientRequest->email = $this->getEmail();
         $recipientRequest->description = $this->getDescription();
         $recipientRequest->document = $this->getDocument();
         $recipientRequest->type = $this->getType()->getValue();
-
-        $createBankAccountRequest = new CreateBankAccountRequest();
-        $createBankAccountRequest->holderName = $this->getBankAccount()->getHolderName();
-        $createBankAccountRequest->holderType = $this->getBankAccount()->getHolderType()->getValue();
-        $createBankAccountRequest->holderDocument = $this->getBankAccount()->getHolderDocument();
-        $createBankAccountRequest->bank = $this->getBankAccount()->getBank();
-        $createBankAccountRequest->branchNumber = $this->getBankAccount()->getBranchNumber();
-        $createBankAccountRequest->branchCheckDigit = $this->getBankAccount()->getBranchCheckDigit();
-        $createBankAccountRequest->accountNumber = $this->getBankAccount()->getAccountNumber();
-        $createBankAccountRequest->accountCheckDigit = $this->getBankAccount()->getAccountCheckDigit();
-        $createBankAccountRequest->type = $this->getBankAccount()->getType()->getValue();
-        $createBankAccountRequest->metadata = $this->getBankAccount()->getMetadata();
-
-        $recipientRequest->defaultBankAccount = $createBankAccountRequest;
         $recipientRequest->metadata = $this->getMetadata();
+
+        $bankAccountRequest = new CreateBankAccountRequest();
+        $bankAccountRequest->holderName = $this->getBankAccount()->getHolderName();
+        $bankAccountRequest->holderType = $this->getBankAccount()->getHolderType()->getValue();
+        $bankAccountRequest->holderDocument = $this->getBankAccount()->getHolderDocument();
+        $bankAccountRequest->bank = $this->getBankAccount()->getBank();
+        $bankAccountRequest->branchNumber = $this->getBankAccount()->getBranchNumber();
+        $bankAccountRequest->branchCheckDigit = $this->getBankAccount()->getBranchCheckDigit();
+        $bankAccountRequest->accountNumber = $this->getBankAccount()->getAccountNumber();
+        $bankAccountRequest->accountCheckDigit = $this->getBankAccount()->getAccountCheckDigit();
+        $bankAccountRequest->type = $this->getBankAccount()->getType()->getValue();
+        $bankAccountRequest->metadata = $this->getBankAccount()->getMetadata();
+
+        $transferSettingsRequest = new CreateTransferSettingsRequest();
+        $transferSettingsRequest->transferInterval = $this->getTransferSettings()
+            ->getTransferInterval()
+            ->getValue();
+
+        $transferSettingsRequest->transferEnabled = $this->getTransferSettings()
+            ->isTransferEnabled();
+
+        $transferSettingsRequest->transferDay = $this->getTransferSettings()
+            ->getTransferDay();
+
+        $recipientRequest->transferSettings = $transferSettingsRequest;
+        $recipientRequest->defaultBankAccount = $bankAccountRequest;
 
         return $recipientRequest;
     }
