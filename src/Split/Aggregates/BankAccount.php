@@ -4,15 +4,13 @@ namespace Mundipagg\Core\Split\Aggregates;
 
 use MundiAPILib\Models\CreateBankAccountRequest;
 use MundiAPILib\Models\UpdateRecipientBankAccountRequest;
-use MundiAPILib\Models\UpdateRecipientRequest;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\ValueObjects\Type;
 use Mundipagg\Core\Split\ValueObjects\TypeBankAccount;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
 
-class BankAccount extends AbstractEntity implements \Mundipagg\Core\Split\Interfaces\BankAccountInterface
+class BankAccount extends AbstractEntity implements BankAccountInterface
 {
-
     /**
      * @var string
      */
@@ -293,5 +291,24 @@ class BankAccount extends AbstractEntity implements \Mundipagg\Core\Split\Interf
         $updateRecipientBankAccountRequest->bankAccount = $createBankAccountRequest;
 
         return $updateRecipientBankAccountRequest;
+    }
+
+    /**
+     * @param BankAccountInterface|AbstractEntity $entity
+     * @return bool
+     */
+    public function equals(AbstractEntity $entity)
+    {
+        if (
+            $this->getBank() == $entity->getBank() &&
+            $this->getBranchNumber() == $entity->getBranchNumber() &&
+            $this->getBranchCheckDigit() == $entity->getBranchCheckDigit() &&
+            $this->getAccountNumber() == $entity->getAccountNumber() &&
+            $this->getAccountCheckDigit() == $entity->getAccountCheckDigit()
+        ) {
+            return true;
+        }
+
+        return false;
     }
 }
