@@ -15,18 +15,31 @@ use ReflectionException;
 class RecipientBankAccountRepository extends AbstractRepository
 {
     /**
+     * @var string
+     */
+    private $table;
+
+    /**
+     * RecipientBankAccountRepository constructor.
+     * @throws Exception
+     */
+    public function __construct()
+    {
+        parent::__construct();
+        $this->table = $this->db->getTable(
+            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT_BANK_ACCOUNT
+        );
+    }
+
+    /**
      * @param BankAccountInterface|AbstractEntity $object
      * @throws Exception
      */
     protected function create(AbstractEntity &$object)
     {
-        $recipientBankAccountTable = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT_BANK_ACCOUNT
-        );
-
         $query = "
           INSERT INTO 
-            {$recipientBankAccountTable} 
+            {$this->table} 
             (
                 recipient_id,
                 holder_name,
@@ -66,14 +79,8 @@ class RecipientBankAccountRepository extends AbstractRepository
      */
     protected function update(AbstractEntity &$object)
     {
-        $table = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT_BANK_ACCOUNT
-        );
-
-        $metaData = json_encode($object->getMetadata());
-
         $query = "
-            UPDATE {$table} SET
+            UPDATE {$this->table} SET
                   recipient_id = '{$object->getRecipientId()}',
                   holder_name = '{$object->getHolderName()}',
                   holder_type = '{$object->getHolderType()->getValue()}',
@@ -101,17 +108,13 @@ class RecipientBankAccountRepository extends AbstractRepository
     }
 
     /**
-     * @param $recipientId
+     * @param int $recipientId
      * @return AbstractEntity|BankAccount|null
      * @throws ReflectionException
      */
     public function findByRecipientId($recipientId)
     {
-        $table = $this->db->getTable(
-            AbstractDatabaseDecorator::TABLE_SPLIT_RECIPIENT_BANK_ACCOUNT
-        );
-
-        $query = "SELECT * FROM {$table} WHERE id = {$recipientId}";
+        $query = "SELECT * FROM {$this->table} WHERE recipient_id = {$recipientId}";
         $result = $this->db->fetch($query);
 
         if ($result->num_rows === 0) {
