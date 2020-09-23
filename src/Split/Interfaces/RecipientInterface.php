@@ -3,6 +3,7 @@
 namespace Mundipagg\Core\Split\Interfaces;
 
 use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Split\Aggregates\Recipient;
 use Mundipagg\Core\Split\ValueObjects\StatusRecipient;
 
 interface RecipientInterface
@@ -127,4 +128,15 @@ interface RecipientInterface
      * @return RecipientInterface
      */
     public function setIsMarketPlace($isMarketplace);
+
+    /**
+     * @return TransferSettingsInterface
+     */
+    public function getTransferSettings();
+
+    /**
+     * @param TransferSettingsInterface $transferSettings
+     * @return Recipient
+     */
+    public function setTransferSettings(TransferSettingsInterface $transferSettings);
 }
