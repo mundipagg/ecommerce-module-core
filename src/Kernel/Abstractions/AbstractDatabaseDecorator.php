@@ -19,6 +19,9 @@ abstract class AbstractDatabaseDecorator
     const TABLE_RECURRENCE_CHARGE = 12;
     const TABLE_RECURRENCE_SUBSCRIPTION = 13;
     const TABLE_RECURRENCE_SUBSCRIPTION_ITEM = 14;
+    const TABLE_SPLIT_RECIPIENT = 15;
+    const TABLE_SPLIT_RECIPIENT_BANK_ACCOUNT = 16;
+    const TABLE_SPLIT_TRANSFER_SETTING = 17;
 
     protected $db;
     protected $tablePrefix;
