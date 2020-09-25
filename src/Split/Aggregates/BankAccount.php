@@ -5,7 +5,7 @@ namespace Mundipagg\Core\Split\Aggregates;
 use MundiAPILib\Models\CreateBankAccountRequest;
 use MundiAPILib\Models\UpdateRecipientBankAccountRequest;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
-use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Kernel\ValueObjects\DocumentType;
 use Mundipagg\Core\Split\ValueObjects\TypeBankAccount;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
 
@@ -57,7 +57,7 @@ class BankAccount extends AbstractEntity implements BankAccountInterface
     private $metaData;
 
     /**
-     * @var Type
+     * @var DocumentType
      */
     private $holderType;
 
@@ -100,17 +100,17 @@ class BankAccount extends AbstractEntity implements BankAccountInterface
     }
 
     /**
-     * @param Type $type
+     * @param DocumentType $type
      * @return BankAccount
      */
-    public function setHolderType(Type $holderType)
+    public function setHolderType(DocumentType $holderType)
     {
         $this->holderType = $holderType;
         return $this;
     }
 
     /**
-     * @return Type
+     * @return DocumentType
      */
     public function getHolderType()
     {

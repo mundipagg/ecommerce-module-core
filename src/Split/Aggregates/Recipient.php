@@ -8,7 +8,7 @@ use MundiAPILib\Models\CreateRecipientRequest;
 use MundiAPILib\Models\CreateTransferSettingsRequest;
 use MundiAPILib\Models\UpdateRecipientRequest;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
-use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Kernel\ValueObjects\DocumentType;
 use Mundipagg\Core\Split\Interfaces\TransferSettingsInterface;
 use Mundipagg\Core\Split\ValueObjects\StatusRecipient;
 use Mundipagg\Core\Split\Interfaces\BankAccountInterface;
@@ -32,7 +32,7 @@ class Recipient extends AbstractEntity implements RecipientInterface
     private $description;
 
     /**
-     * @var Type
+     * @var DocumentType
      */
     private $type;
 
@@ -172,7 +172,7 @@ class Recipient extends AbstractEntity implements RecipientInterface
     }
 
     /**
-     * @return Type
+     * @return DocumentType
      */
     public function getType()
     {
@@ -180,10 +180,10 @@ class Recipient extends AbstractEntity implements RecipientInterface
     }
 
     /**
-     * @param Type $type
+     * @param DocumentType $type
      * @return Recipient
      */
-    public function setType(Type $type)
+    public function setType(DocumentType $type)
     {
         $this->type = $type;
         return $this;

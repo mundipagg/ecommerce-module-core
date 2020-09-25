@@ -31,13 +31,13 @@ interface BankAccountInterface
     public function getHolderName();
 
     /**
-     * @param \Mundipagg\Core\Kernel\ValueObjects\Type $type
+     * @param \Mundipagg\Core\Kernel\ValueObjects\DocumentType $type
      * @return BankAccountInterface
      */
-    public function setHolderType(\Mundipagg\Core\Kernel\ValueObjects\Type $type);
+    public function setHolderType(\Mundipagg\Core\Kernel\ValueObjects\DocumentType $type);
 
     /**
-     * @return \Mundipagg\Core\Kernel\ValueObjects\Type
+     * @return \Mundipagg\Core\Kernel\ValueObjects\DocumentType
      */
     public function getHolderType();
 
@@ -128,15 +128,4 @@ interface BankAccountInterface
      * @return string[]
      */
     public function getMetadata();
-
-//    /**
-//     * @param int
-//     * @return BankAccountInterface
-//     */
-//    public function setId($id);
-//
-//    /**
-//     * @return int
-//     */
-//    public function getId();
 }

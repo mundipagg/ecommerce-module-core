@@ -4,7 +4,7 @@ namespace Mundipagg\Core\Kernel\ValueObjects;
 
 use Mundipagg\Core\Kernel\Abstractions\AbstractValueObject;
 
-class Type extends AbstractValueObject
+class DocumentType extends AbstractValueObject
 {
     const INDIVIDUAL = 'individual';
     const COMPANY = 'company';
@@ -22,17 +22,17 @@ class Type extends AbstractValueObject
     }
 
     /**
-     * @return Type
+     * @return DocumentType
      */
-    static public function individual()
+    public static function individual()
     {
         return new self(self::INDIVIDUAL);
     }
 
     /**
-     * @return Type
+     * @return DocumentType
      */
-    static public function company()
+    public static function company()
     {
         return new self(self::COMPANY);
     }

@@ -5,7 +5,7 @@ namespace Mundipagg\Core\Split\Factories;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
 use Mundipagg\Core\Kernel\Helper\Hydrator;
 use Mundipagg\Core\Kernel\Interfaces\FactoryCreateFromDbDataInterface;
-use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Kernel\ValueObjects\DocumentType;
 use Mundipagg\Core\Split\Aggregates\BankAccount;
 use Mundipagg\Core\Split\ValueObjects\TypeBankAccount;
 use ReflectionException;

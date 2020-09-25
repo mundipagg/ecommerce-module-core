@@ -2,7 +2,7 @@
 
 namespace Mundipagg\Core\Split\Interfaces;
 
-use Mundipagg\Core\Kernel\ValueObjects\Type;
+use Mundipagg\Core\Kernel\ValueObjects\DocumentType;
 use Mundipagg\Core\Split\Aggregates\Recipient;
 use Mundipagg\Core\Split\ValueObjects\StatusRecipient;
 
@@ -86,15 +86,15 @@ interface RecipientInterface
     public function setStatus(StatusRecipient $status);
 
     /**
-     * @return Type
+     * @return DocumentType
      */
     public function getType();
 
     /**
-     * @param Type $type
+     * @param DocumentType $type
      * @return RecipientInterface
      */
-    public function setType(Type $type);
+    public function setType(DocumentType $type);
 
     /**
      * @return \Mundipagg\Core\Split\Interfaces\BankAccountInterface
