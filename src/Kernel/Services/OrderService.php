@@ -19,6 +19,7 @@ use Mundipagg\Core\Kernel\Factories\OrderFactory;
 use Mundipagg\Core\Kernel\Factories\ChargeFactory;
 use Mundipagg\Core\Payment\Aggregates\Order as PaymentOrder;
 use Exception;
+use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 
 final class OrderService
 {
@@ -100,6 +101,27 @@ final class OrderService
         $dataService->updateAcquirerData($order);
     }
 
+    public function cancelChargesAtMundipagg(Order $order){
+        $messages = [];
+        $charges = $order->getCharges();
+
+        $APIService = new APIService();
+
+        foreach ($charges as $charge) {
+            if ($charge->getStatus()->equals(ChargeStatus::canceled()) ||
+                $charge->getStatus()->equals(ChargeStatus::failed()) ){
+                    continue;
+            }
+            $result = $APIService->cancelCharge($charge);
+            if ($result !== null) {
+                $messages[$charge->getMundipaggId()->getValue()] = $result;
+            }
+            $order->updateCharge($charge);
+        }
+
+        return $messages;
+    }
+
     public function cancelAtMundipagg(Order $order)
     {
         $orderRepository = new OrderRepository();
@@ -112,21 +134,10 @@ final class OrderService
             return;
         }
 
-        $APIService = new APIService();
-
-        $charges = $order->getCharges();
-        $results = [];
-        foreach ($charges as $charge) {
-            $result = $APIService->cancelCharge($charge);
-            if ($result !== null) {
-                $results[$charge->getMundipaggId()->getValue()] = $result;
-            }
-            $order->updateCharge($charge);
-        }
-
-        $i18n = new LocalizationService();
+        $results = $this->cancelChargesAtMundipagg($order);
 
         if (empty($results)) {
+            $i18n = new LocalizationService();
             $order->setStatus(OrderStatus::canceled());
             $order->getPlatformOrder()->setStatus(OrderStatus::canceled());
 
@@ -155,6 +166,12 @@ final class OrderService
             return;
         }
 
+        $this->addMessagesToPlatformHistory($results, $order);
+
+    }
+
+    public function addMessagesToPlatformHistory($results, $order){
+        $i18n = new LocalizationService();
         $history = $i18n->getDashboard("Some charges couldn't be canceled at Mundipagg. Reasons:");
         $history .= "<br /><ul>";
         foreach ($results as $chargeId => $reason)
@@ -164,6 +181,16 @@ final class OrderService
         $history .= '</ul>';
         $order->getPlatformOrder()->addHistoryComment($history);
         $order->getPlatformOrder()->save();
+    }
+
+    public function addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages){
+        foreach ($errorMessages as $chargeId => $reason) {
+            $this->logService->orderInfo(
+                $platformOrder->getCode(),
+                "Charge $chargeId couldn't be canceled at Mundipagg. Reason: $reason",
+                $orderInfo
+            );
+        }
     }
 
     public function cancelAtMundipaggByPlatformOrder(PlatformOrderInterface $platformOrder)
@@ -196,47 +223,53 @@ final class OrderService
                 'Creating order.',
                 $orderInfo
             );
+
             //set pending
             $platformOrder->setState(OrderState::stateNew());
             $platformOrder->setStatus(OrderStatus::pending());
 
             //build PaymentOrder based on platformOrder
-            $order =  $this->extractPaymentOrderFromPlatformOrder($platformOrder);
+            $paymentOrder =  $this->extractPaymentOrderFromPlatformOrder($platformOrder);
 
             $i18n = new LocalizationService();
 
             //Send through the APIService to mundipagg
             $apiService = new APIService();
-            $response = $apiService->createOrder($order);
-
-            $originalResponse = $response;
-            $forceCreateOrder = MPSetup::getModuleConfiguration()->isCreateOrderEnabled();
-
-            if (!$forceCreateOrder && !$this->checkResponseStatus($response)) {
-                $this->logService->orderInfo(
-                    $platformOrder->getCode(),
-                    "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
-                    $orderInfo
-                );
-                $this->persistListChargeFailed($response);
-
-                $message = $i18n->getDashboard("Can't create order.");
-                throw new \Exception($message, 400);
-            }
-
-            $platformOrder->save();
+            $response = $apiService->createOrder($paymentOrder);
 
             $orderFactory = new OrderFactory();
-            $response = $orderFactory->createFromPostData($response);
+            $order = $orderFactory->createFromPostData($response);
+            $forceCreateOrder = MPSetup::getModuleConfiguration()->isCreateOrderEnabled();
 
-            $response->setPlatformOrder($platformOrder);
+            if (!$forceCreateOrder && !$this->wasOrderChargedSuccessfully($response)) {
+                $this->logService->orderInfo(
+                    $platformOrder->getCode(),
+                    "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
+                    $orderInfo
+                );
 
-            $handler = $this->getResponseHandler($response);
-            $handler->handle($response, $order);
+                $errorMessages = $this->cancelChargesAtMundipagg($order);
+
+                if (!empty($errorMessages)){
+                    $this->addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages);
+                }
+
+                $this->persistListChargeFailed($order);
+
+                $message = $i18n->getDashboard("Can't create order.");
+                throw new \Exception($message, 400);
+            }
 
             $platformOrder->save();
 
-            if ($forceCreateOrder && !$this->checkResponseStatus($originalResponse)) {
+            $order->setPlatformOrder($platformOrder);
+
+            $handler = $this->getResponseHandler($order);
+            $handler->handle($order, $paymentOrder);
+
+            $platformOrder->save();
+
+            if (!$this->wasOrderChargedSuccessfully($response)) {
                 $this->logService->orderInfo(
                     $platformOrder->getCode(),
                     "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
@@ -246,7 +279,7 @@ final class OrderService
                 throw new \Exception($message, 400);
             }
 
-            return [$response];
+            return [$order];
         } catch (\Exception $e) {
             $this->logService->orderInfo(
                 $platformOrder->getCode(),
@@ -341,7 +374,7 @@ final class OrderService
      * @param $response
      * @return boolean
      */
-    private function checkResponseStatus($response)
+    private function wasOrderChargedSuccessfully($response)
     {
         if (
             !isset($response['status']) ||
@@ -361,25 +394,21 @@ final class OrderService
     }
 
     /**
-     * @param $response
+     * @param Order $order
      * @throws InvalidParamException
      * @throws Exception
      */
-    private function persistListChargeFailed($response)
+    private function persistListChargeFailed(Order $order)
     {
-        if (empty($response['charges'])) {
+
+        $charges = $order->getCharges();
+        if (empty($charges)) {
             return;
         }
 
-        $chargeFactory = new ChargeFactory();
         $chargeService = new ChargeService();
 
-        foreach ($response['charges'] as $chargeResponse) {
-            $order = ['order' => ['id' => $response['id']]];
-            $charge = $chargeFactory->createFromPostData(
-                array_merge($chargeResponse, $order)
-            );
-
+        foreach ($charges as $charge) {
             $chargeService->save($charge);
         }
     }
