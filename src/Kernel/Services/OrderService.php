@@ -101,15 +101,18 @@ final class OrderService
         $dataService->updateAcquirerData($order);
     }
 
-    public function cancelChargesAtMundipagg(Order $order){
+    public function cancelChargesAtMundipagg(Order $order)
+    {
         $messages = [];
         $charges = $order->getCharges();
 
         $APIService = new APIService();
 
         foreach ($charges as $charge) {
-            if ($charge->getStatus()->equals(ChargeStatus::canceled()) ||
-                $charge->getStatus()->equals(ChargeStatus::failed()) ){
+            if (
+                $charge->getStatus()->equals(ChargeStatus::canceled()) ||
+                $charge->getStatus()->equals(ChargeStatus::failed())
+            ){
                     continue;
             }
             $result = $APIService->cancelCharge($charge);
