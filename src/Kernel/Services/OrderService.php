@@ -101,25 +101,28 @@ final class OrderService
         $dataService->updateAcquirerData($order);
     }
 
-    public function cancelChargesAtMundipagg(Order $order)
+    public function cancelChargesAtMundipagg(array $charges, Order $order = null)
     {
         $messages = [];
-        $charges = $order->getCharges();
-
         $APIService = new APIService();
 
         foreach ($charges as $charge) {
             if (
                 $charge->getStatus()->equals(ChargeStatus::canceled()) ||
                 $charge->getStatus()->equals(ChargeStatus::failed())
-            ){
-                    continue;
+            ) {
+                continue;
             }
+
             $result = $APIService->cancelCharge($charge);
-            if ($result !== null) {
+
+            if (!is_null($result)) {
                 $messages[$charge->getMundipaggId()->getValue()] = $result;
             }
-            $order->updateCharge($charge);
+
+            if (!empty($order)) {
+                $order->updateCharge($charge);
+            }
         }
 
         return $messages;
@@ -137,7 +140,7 @@ final class OrderService
             return;
         }
 
-        $results = $this->cancelChargesAtMundipagg($order);
+        $results = $this->cancelChargesAtMundipagg($order->getCharges(), $order);
 
         if (empty($results)) {
             $i18n = new LocalizationService();
@@ -170,15 +173,14 @@ final class OrderService
         }
 
         $this->addMessagesToPlatformHistory($results, $order);
-
     }
 
-    public function addMessagesToPlatformHistory($results, $order){
+    public function addMessagesToPlatformHistory($results, $order)
+    {
         $i18n = new LocalizationService();
         $history = $i18n->getDashboard("Some charges couldn't be canceled at Mundipagg. Reasons:");
         $history .= "<br /><ul>";
-        foreach ($results as $chargeId => $reason)
-        {
+        foreach ($results as $chargeId => $reason) {
             $history .= "<li>$chargeId : $reason</li>";
         }
         $history .= '</ul>';
@@ -186,7 +188,8 @@ final class OrderService
         $order->getPlatformOrder()->save();
     }
 
-    public function addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages){
+    public function addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages)
+    {
         foreach ($errorMessages as $chargeId => $reason) {
             $this->logService->orderInfo(
                 $platformOrder->getCode(),
@@ -240,8 +243,6 @@ final class OrderService
             $apiService = new APIService();
             $response = $apiService->createOrder($paymentOrder);
 
-            $orderFactory = new OrderFactory();
-            $order = $orderFactory->createFromPostData($response);
             $forceCreateOrder = MPSetup::getModuleConfiguration()->isCreateOrderEnabled();
 
             if (!$forceCreateOrder && !$this->wasOrderChargedSuccessfully($response)) {
@@ -251,13 +252,14 @@ final class OrderService
                     $orderInfo
                 );
 
-                $errorMessages = $this->cancelChargesAtMundipagg($order);
+                $charges = $this->createChargesFromResponse($response);
+                $errorMessages = $this->cancelChargesAtMundipagg($charges);
 
-                if (!empty($errorMessages)){
+                if (!empty($errorMessages)) {
                     $this->addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages);
                 }
 
-                $this->persistListChargeFailed($order);
+                $this->persistListChargeFailed($response);
 
                 $message = $i18n->getDashboard("Can't create order.");
                 throw new \Exception($message, 400);
@@ -265,6 +267,8 @@ final class OrderService
 
             $platformOrder->save();
 
+            $orderFactory = new OrderFactory();
+            $order = $orderFactory->createFromPostData($response);
             $order->setPlatformOrder($platformOrder);
 
             $handler = $this->getResponseHandler($order);
@@ -344,7 +348,7 @@ final class OrderService
                 $message,
                 $orderInfo
             );
-            throw new \Exception($message,400);
+            throw new \Exception($message, 400);
         }
 
         $items = $platformOrder->getItemCollection();
@@ -397,23 +401,43 @@ final class OrderService
     }
 
     /**
-     * @param Order $order
+     * @param $response
      * @throws InvalidParamException
      * @throws Exception
      */
-    private function persistListChargeFailed(Order $order)
+    private function persistListChargeFailed($response)
     {
-
-        $charges = $order->getCharges();
-        if (empty($charges)) {
+        if (empty($response['charges'])) {
             return;
         }
 
+        $charges = $this->createChargesFromResponse($response);
         $chargeService = new ChargeService();
 
         foreach ($charges as $charge) {
             $chargeService->save($charge);
         }
+    }
+
+    private function createChargesFromResponse($response)
+    {
+        if (empty($response['charges'])) {
+            return;
+        }
+
+        $charges = [];
+        $chargeFactory = new ChargeFactory();
+
+        foreach ($response['charges'] as $chargeResponse) {
+            $order = ['order' => ['id' => $response['id']]];
+            $charge = $chargeFactory->createFromPostData(
+                array_merge($chargeResponse, $order)
+            );
+
+            $charges[] = $charge;
+        }
+
+        return $charges;
     }
 
     /**
