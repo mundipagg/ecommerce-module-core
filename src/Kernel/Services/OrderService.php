@@ -101,28 +101,44 @@ final class OrderService
         $dataService->updateAcquirerData($order);
     }
 
+    private function chargeAlreadyCanceled($charge)
+    {
+        return
+            $charge->getStatus()->equals(ChargeStatus::canceled()) ||
+            $charge->getStatus()->equals(ChargeStatus::failed());
+    }
+
+    private function addReceivedChargeMessages($messages, $charge, $result)
+    {
+        if (!is_null($result)) {
+            $messages[$charge->getMundipaggId()->getValue()] = $result;
+        }
+
+        return $messages;
+    }
+
+    private function updateChargeInOrder($order, $charge)
+    {
+        if (!empty($order)) {
+            $order->updateCharge($charge);
+        }
+    }
+
     public function cancelChargesAtMundipagg(array $charges, Order $order = null)
     {
         $messages = [];
         $APIService = new APIService();
 
         foreach ($charges as $charge) {
-            if (
-                $charge->getStatus()->equals(ChargeStatus::canceled()) ||
-                $charge->getStatus()->equals(ChargeStatus::failed())
-            ) {
+            if ($this->chargeAlreadyCanceled($charge)) {
                 continue;
             }
 
             $result = $APIService->cancelCharge($charge);
 
-            if (!is_null($result)) {
-                $messages[$charge->getMundipaggId()->getValue()] = $result;
-            }
+            $messages = $this->addReceivedChargeMessages($messages, $charge, $result);
 
-            if (!empty($order)) {
-                $order->updateCharge($charge);
-            }
+            $this->updateChargeInOrder($order, $charge);
         }
 
         return $messages;
