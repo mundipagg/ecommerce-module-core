@@ -206,6 +206,11 @@ final class OrderService
 
     public function addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages)
     {
+
+        if (!empty($errorMessages)) {
+            return;
+        }
+
         foreach ($errorMessages as $chargeId => $reason) {
             $this->logService->orderInfo(
                 $platformOrder->getCode(),
@@ -271,9 +276,7 @@ final class OrderService
                 $charges = $this->createChargesFromResponse($response);
                 $errorMessages = $this->cancelChargesAtMundipagg($charges);
 
-                if (!empty($errorMessages)) {
-                    $this->addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages);
-                }
+                $this->addChargeMessagesToLog($platformOrder, $orderInfo, $errorMessages);
 
                 $this->persistListChargeFailed($response);
 
@@ -393,17 +396,21 @@ final class OrderService
         return $orderInfo;
     }
 
+    private function responseHasChargesAndFailed($response)
+    {
+        return !isset($response['status']) ||
+            !isset($response['charges']) ||
+            $response['status'] == 'failed';
+    }
+
     /**
      * @param $response
      * @return boolean
      */
     private function wasOrderChargedSuccessfully($response)
     {
-        if (
-            !isset($response['status']) ||
-            !isset($response['charges']) ||
-            $response['status'] == 'failed'
-        ) {
+
+        if ($this->responseHasChargesAndFailed($response)) {
             return false;
         }
 
