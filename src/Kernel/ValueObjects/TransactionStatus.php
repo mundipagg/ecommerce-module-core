@@ -26,6 +26,7 @@ final class TransactionStatus extends AbstractValueObject
     const EXPIRED = 'expired';
     const PENDING_REVIEW = 'pending_review';
     const ANALYZING = 'analyzing';
+    const WAITING_CAPTURE = 'waiting_capture';
 
     /**
      *
@@ -137,6 +138,12 @@ final class TransactionStatus extends AbstractValueObject
     {
         return new self(self::ANALYZING);
     }
+
+    public static function waitingCapture()
+    {
+        return new self(self::WAITING_CAPTURE);
+    }
+
 
     /**
      *
