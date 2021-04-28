@@ -43,14 +43,18 @@ class ENUS extends AbstractI18NTable
             "The card '%s' couldn't be deleted." => null,
             "Different paid amount for this invoice. Paid value: %.2f" => null,
             "The %s should not be empty!" => null,
+            "The %s is invalid!" => null,
             "street" => null,
             "number" => null,
             "neighborhood" => null,
+            "zipCode" => null,
             "city" => null,
             "country" => null,
             "state" => null,
+            "phone" => null,
             "document" => null,
             "Can't create order." => null,
+            "Can't create payment. Please review the information and try again." => null,
             'Invalid address configuration. Please fill the address configuration on admin panel.' => null,
             'week' => null,
             'weeks' => null,
@@ -85,6 +89,8 @@ class ENUS extends AbstractI18NTable
             'Antifraud reproved' => null,
             'Antifraud pending' => null,
             'Waiting manual analise in antifraud' => null,
+            "Can't initialize the payment service. Please contact the store administrator." => null,
+            "It was not possible to connect to the payment service. Please contact the store administrator." => null,
         ];
     }
 }

@@ -269,7 +269,7 @@ final class OrderService
             if (!$forceCreateOrder && !$this->wasOrderChargedSuccessfully($response)) {
                 $this->logService->orderInfo(
                     $platformOrder->getCode(),
-                    "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
+                    "Can't create payment. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
                     $orderInfo
                 );
 
@@ -280,7 +280,7 @@ final class OrderService
 
                 $this->persistListChargeFailed($response);
 
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard("Can't create payment. Please review the information and try again.");
                 throw new \Exception($message, 400);
             }
 
@@ -298,10 +298,10 @@ final class OrderService
             if (!$this->wasOrderChargedSuccessfully($response)) {
                 $this->logService->orderInfo(
                     $platformOrder->getCode(),
-                    "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
+                    "Can't create payment. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
                     $orderInfo
                 );
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard("Can't create payment. Please review the information and try again.");
                 throw new \Exception($message, 400);
             }
 
@@ -360,6 +360,8 @@ final class OrderService
             $order->addPayment($payment);
         }
 
+        $orderInfo = $this->getOrderInfo($platformOrder);
+
         if (!$order->isPaymentSumCorrect()) {
             $message = 'The sum of payments is different than the order amount!';
             $this->logService->orderInfo(
@@ -396,7 +398,7 @@ final class OrderService
         return $orderInfo;
     }
 
-    private function responseHasChargesAndFailed($response)
+    private function responseHasNoChargesOrFailed($response)
     {
         return !isset($response['status']) ||
             !isset($response['charges']) ||
@@ -410,7 +412,7 @@ final class OrderService
     private function wasOrderChargedSuccessfully($response)
     {
 
-        if ($this->responseHasChargesAndFailed($response)) {
+        if ($this->responseHasNoChargesOrFailed($response)) {
             return false;
         }
 
@@ -445,7 +447,7 @@ final class OrderService
     private function createChargesFromResponse($response)
     {
         if (empty($response['charges'])) {
-            return;
+            return [];
         }
 
         $charges = [];
