@@ -128,7 +128,10 @@ final class Customer extends AbstractEntity implements ConvertibleToSDKRequestsI
      */
     public function setDocument($document)
     {
-        $this->document = substr($document, 0, 16);
+        $this->document = preg_replace(
+            '/[^0-9]/is', '',
+            substr($document, 0, 16)
+        );
 
         if (empty($this->document)) {
 
