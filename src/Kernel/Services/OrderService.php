@@ -442,7 +442,7 @@ final class OrderService
     private function persistListChargeFailed($response)
     {
         if (empty($response['charges'])) {
-            return [];
+            return;
         }
 
         $charges = $this->createChargesFromResponse($response);
@@ -456,7 +456,7 @@ final class OrderService
     private function createChargesFromResponse($response)
     {
         if (empty($response['charges'])) {
-            return;
+            return [];
         }
 
         $charges = [];

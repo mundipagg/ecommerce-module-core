@@ -17,7 +17,7 @@ class AddressTests extends TestCase
         $this->address = new Address();
     }
 
-    public function testAddressNumberRemoveComma()
+    public function testCityTrim()
     {
         $this->address->setCity(' Florianópolis ');
         $this->assertEquals('Florianópolis', $this->address->getCity());
