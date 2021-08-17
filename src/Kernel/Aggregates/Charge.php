@@ -3,7 +3,7 @@
 namespace Mundipagg\Core\Kernel\Aggregates;
 
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
-use Mundipagg\Core\Kernel\Exceptions\InvalidOperationException;
+use Mundipagg\Core\Kernel\Services\LogService;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
@@ -63,6 +63,12 @@ final class Charge extends AbstractEntity implements ChargeInterface
     private $metadata;
 
     private $customerId;
+
+
+    public function __construct()
+    {
+        $this->logService = new LogService('Charge', true);
+    }
 
     /**
      *
@@ -305,6 +311,26 @@ final class Charge extends AbstractEntity implements ChargeInterface
      */
     public function setStatus(ChargeStatus $status)
     {
+        $currentStatus = '';
+        try {
+            $currentStatus = $this->getStatus()->getStatus();
+        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+        }
+
+        $statusInfo = (object)[
+            "from" => $currentStatus,
+            "to" => $status->getStatus(),
+        ];
+
+        if (!empty($this->logService)) {
+            $this->logService->info(
+                "Charge {$this->getMundipaggId()} Status Change",
+                $statusInfo
+            );
+        }
+
+
         $this->status = $status;
         return $this;
     }
