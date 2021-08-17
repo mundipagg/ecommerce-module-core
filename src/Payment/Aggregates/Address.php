@@ -206,8 +206,19 @@ final class Address extends AbstractEntity implements ConvertibleToSDKRequestsIn
      */
     public function setZipCode($zipCode)
     {
-        $zipCode = str_replace('-', '', $zipCode);
-        $this->zipCode = substr($zipCode, 0, 16);
+        $zipCode = trim($zipCode);
+
+        if (empty($zipCode)) {
+            $inputName = $this->i18n->getDashboard('zipCode');
+            $message = $this->i18n->getDashboard(
+                "The %s should not be empty!",
+                $inputName
+            );
+
+            throw new \Exception($message, 400);
+        }
+
+        $this->zipCode = $this->formatZipCode($zipCode);
 
         return $this;
     }
@@ -227,8 +238,9 @@ final class Address extends AbstractEntity implements ConvertibleToSDKRequestsIn
      */
     public function setCity($city)
     {
-        $this->city = substr($city, 0, 64);
-
+        $this->city = trim(
+            substr($city, 0, 64)
+        );
         if (empty($this->city)) {
 
             $inputName = $this->i18n->getDashboard('city');
@@ -281,7 +293,7 @@ final class Address extends AbstractEntity implements ConvertibleToSDKRequestsIn
         $line[] = $this->getStreet();
         $line[] = $this->getNeighborhood();
 
-        return implode (self::ADDRESS_LINE_SEPARATOR, $line);
+        return implode(self::ADDRESS_LINE_SEPARATOR, $line);
     }
 
     public function getLine2()
@@ -341,7 +353,7 @@ final class Address extends AbstractEntity implements ConvertibleToSDKRequestsIn
         $obj->country = $this->country;
         $obj->line1 = $this->getLine1();
         $obj->line2 = $this->getLine2();
-        
+
         return $obj;
     }
 
@@ -364,5 +376,20 @@ final class Address extends AbstractEntity implements ConvertibleToSDKRequestsIn
         $addressRequest->zipCode = $this->getZipCode();
 
         return $addressRequest;
+    }
+
+    private function formatZipCode($zipCode)
+    {
+        $zipCode = str_replace('-', '', $zipCode);
+
+        $brazilianZipCodeLength = 8;
+        if (strtoupper($this->country) === 'BR') {
+            $zipCode = sprintf("%0${brazilianZipCodeLength}s", $zipCode);
+            $zipCode = substr($zipCode, 0, $brazilianZipCodeLength);
+            return $zipCode;
+        }
+
+        $zipCode = substr($zipCode, 0, 16);
+        return $zipCode;
     }
 }

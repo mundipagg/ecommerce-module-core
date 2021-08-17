@@ -3,7 +3,7 @@
 namespace Mundipagg\Core\Kernel\Aggregates;
 
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
-use Mundipagg\Core\Kernel\Exceptions\InvalidOperationException;
+use Mundipagg\Core\Kernel\Services\LogService;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\ValueObjects\ChargeStatus;
 use Mundipagg\Core\Kernel\ValueObjects\Id\OrderId;
@@ -17,17 +17,17 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     /**
      *
-     * @var OrderId 
+     * @var OrderId
      */
     private $orderId;
     /**
      *
-     * @var int 
+     * @var int
      */
     private $amount;
     /**
      *
-     * @var int 
+     * @var int
      */
     private $paidAmount;
     /**
@@ -45,24 +45,30 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     /**
      *
-     * @var string 
+     * @var string
      */
     private $code;
     /**
      *
-     * @var ChargeStatus 
+     * @var ChargeStatus
      */
     private $status;
 
     /**
      *
-     * @var Transaction[] 
+     * @var Transaction[]
      */
     private $transactions;
 
     private $metadata;
 
     private $customerId;
+
+
+    public function __construct()
+    {
+        $this->logService = new LogService('Charge', true);
+    }
 
     /**
      *
@@ -94,16 +100,16 @@ final class Charge extends AbstractEntity implements ChargeInterface
         $this->setPaidAmount($amount);
 
         if ($this->getStatus()->equals(ChargeStatus::underpaid())) {
-            $this->status = ChargeStatus::underpaid();
+            $this->setStatus(ChargeStatus::underpaid());
             return;
         }
 
-        $this->status = ChargeStatus::paid();
+        $this->setStatus(ChargeStatus::paid());
         $amountToCancel = $this->amount - $this->getPaidAmount();
         $this->setCanceledAmount($amountToCancel);
 
         if ($this->getLastTransaction()->getPaidAmount() > $this->getAmount()) {
-            $this->status = ChargeStatus::overpaid();
+            $this->setStatus(ChargeStatus::overpaid());
             $this->setPaidAmount($this->getLastTransaction()->getPaidAmount());
         }
     }
@@ -124,7 +130,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
             //if all the paid amount was canceled, the charge should be canceled.
             if ($amount == $this->paidAmount) {
-                $this->status = ChargeStatus::canceled();
+                $this->setStatus(ChargeStatus::canceled());
             }
 
             return;
@@ -132,7 +138,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
         //if the charge wasn't payed yet the charge should be canceled.
         $this->setCanceledAmount($this->amount);
-        $this->status = ChargeStatus::canceled();
+        $this->setStatus(ChargeStatus::canceled());
     }
 
     /**
@@ -305,6 +311,12 @@ final class Charge extends AbstractEntity implements ChargeInterface
      */
     public function setStatus(ChargeStatus $status)
     {
+        if (!empty($this->logService)) {
+            $this->logService->info(
+                "Charge {$this->getMundipaggId()} status changing to {$status->getStatus()}"
+            );
+        }
+
         $this->status = $status;
         return $this;
     }
@@ -336,7 +348,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     public function failed()
     {
-        $this->status = ChargeStatus::failed();
+        $this->setStatus(ChargeStatus::failed());
     }
 
     /**
@@ -351,8 +363,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
         foreach ($transactions as $transaction) {
             if ($transaction->getMundipaggId()->equals(
                 $newTransaction->getMundipaggId()
-            )
-            ) {
+            )) {
                 return $this;
             }
         }

@@ -4,6 +4,7 @@ namespace Mundipagg\Core\Payment\Aggregates\Payments;
 
 use MundiAPILib\Models\CreateCardRequest;
 use MundiAPILib\Models\CreateCreditCardPaymentRequest;
+use Mundipagg\Core\Kernel\Services\LocalizationService;
 use Mundipagg\Core\Kernel\Abstractions\AbstractModuleCoreSetup as MPSetup;
 use Mundipagg\Core\Kernel\Exceptions\InvalidParamException;
 use Mundipagg\Core\Kernel\Services\InstallmentService;
@@ -88,6 +89,7 @@ abstract class AbstractCreditCardPayment extends AbstractPayment
      */
     private function validateIfIsRealInstallment($installments)
     {
+        $i18n = new LocalizationService();
         //get valid installments for this brand.
         $installmentService = new InstallmentService();
         $validInstallments = $installmentService->getInstallmentsFor(
@@ -105,8 +107,10 @@ abstract class AbstractCreditCardPayment extends AbstractPayment
 
         //invalid installment
         $moneyService = new MoneyService();
-        $exception = "The card brand '%s' or the amount %.2f doesn't allow the %dx installments!";
-        $exception = sprintf(
+        $exception =
+            "The card brand '%s' or the amount %.2f doesn't allow " .
+            "%d installment(s)! Please review the information and try again.";
+        $exception = $i18n->getDashboard(
             $exception,
             $this->brand->getName(),
             $moneyService->centsToFloat($this->amount),

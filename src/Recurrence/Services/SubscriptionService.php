@@ -81,7 +81,10 @@ final class SubscriptionService
             $forceCreateOrder = MPSetup::getModuleConfiguration()->isCreateOrderEnabled();
 
             if ($subscriptionResponse === null) {
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard(
+                    "Can't create payment. " .
+                        "Please review the information and try again."
+                );
                 throw new \Exception($message, 400);
             }
 
@@ -95,15 +98,18 @@ final class SubscriptionService
                 if (!empty($subscriptionResponse['id'])) {
                     $failedSubscription =
                         $subscriptionFactory
-                            ->createFromFailedSubscription(
-                                $subscriptionResponse
-                            );
+                        ->createFromFailedSubscription(
+                            $subscriptionResponse
+                        );
 
                     $this->cancelSubscriptionAtMundipagg($failedSubscription);
                 }
 
                 if (!$forceCreateOrder) {
-                    $message = $i18n->getDashboard("Can't create order.");
+                    $message = $i18n->getDashboard(
+                        "Can't create payment. " .
+                            "Please review the information and try again."
+                    );
                     throw new \Exception($message, 400);
                 }
             }
@@ -122,13 +128,15 @@ final class SubscriptionService
                 $forceCreateOrder &&
                 !$this->checkResponseStatus($originalSubscriptionResponse)
             ) {
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard(
+                    "Can't create payment. " .
+                        "Please review the information and try again."
+                );
                 throw new \Exception($message, 400);
             }
 
             return [$response];
-
-        } catch(\Exception $e) {
+        } catch (\Exception $e) {
             $exceptionHandler = new ErrorExceptionHandler();
             $paymentOrder = new PaymentOrder;
             $paymentOrder->setCode($platformOrder->getcode());
@@ -148,7 +156,7 @@ final class SubscriptionService
         $discountOrder = $platformOrder->getPlatformOrder()->getDiscountAmount();
 
         if ($discountOrder == 0) {
-           return;
+            return;
         }
 
         $discountSubscription = Discounts::FLAT((($discountOrder * -1) * 100), 1);
@@ -235,9 +243,9 @@ final class SubscriptionService
             if ($product->getType() !== null) {
                 $items[] =
                     $recurrenceService
-                        ->getRecurrenceProductByProductId(
-                            $product->getCode()
-                        );
+                    ->getRecurrenceProductByProductId(
+                        $product->getCode()
+                    );
             }
         }
 
@@ -272,7 +280,7 @@ final class SubscriptionService
             $increment = new Increment();
 
             $shippingAmount = 0;
-            if($order->getShipping() != null) {
+            if ($order->getShipping() != null) {
                 $shippingAmount = $order->getShipping()->getAmount();
             }
 
@@ -356,13 +364,13 @@ final class SubscriptionService
 
         $intervalCount =
             $this->subscriptionItems[0]
-                ->getSelectedRepetition()
-                ->getIntervalCount();
+            ->getSelectedRepetition()
+            ->getIntervalCount();
 
         $intervalType =
             $this->subscriptionItems[0]
-                ->getSelectedRepetition()
-                ->getInterval();
+            ->getSelectedRepetition()
+            ->getInterval();
 
         $subscription->setIntervalType($intervalType);
         $subscription->setIntervalCount($intervalCount);
@@ -485,8 +493,8 @@ final class SubscriptionService
     }
 
     /**
-    * @todo Remove when be implemented the "code" on mark1
-    */
+     * @todo Remove when be implemented the "code" on mark1
+     */
     private function setProductIdOnSubscriptionItems(&$subscriptionResponse, $subscription)
     {
         if ($subscription->getRecurrenceType() == Plan::RECURRENCE_TYPE) {
