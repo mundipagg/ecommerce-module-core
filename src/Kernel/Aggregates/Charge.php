@@ -311,25 +311,11 @@ final class Charge extends AbstractEntity implements ChargeInterface
      */
     public function setStatus(ChargeStatus $status)
     {
-        $currentStatus = '';
-        try {
-            $currentStatus = $this->getStatus()->getStatus();
-        } catch (\Exception $e) {
-        } catch (\Throwable $e) {
-        }
-
-        $statusInfo = (object)[
-            "from" => $currentStatus,
-            "to" => $status->getStatus(),
-        ];
-
         if (!empty($this->logService)) {
             $this->logService->info(
-                "Charge {$this->getMundipaggId()} Status Change",
-                $statusInfo
+                "Charge {$this->getMundipaggId()} status changing to {$status->getStatus()}"
             );
         }
-
 
         $this->status = $status;
         return $this;
