@@ -4,6 +4,7 @@ namespace Mundipagg\Core\Payment\Aggregates;
 
 use MundiAPILib\Models\CreateOrderRequest;
 use Mundipagg\Core\Kernel\Abstractions\AbstractEntity;
+use Mundipagg\Core\Kernel\Services\LocalizationService;
 use Mundipagg\Core\Payment\Aggregates\Payments\AbstractPayment;
 use Mundipagg\Core\Payment\Aggregates\Payments\SavedCreditCardPayment;
 use Mundipagg\Core\Payment\Interfaces\ConvertibleToSDKRequestsInterface;
@@ -147,8 +148,7 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
         }
 
         $sum = 0;
-        foreach ($this->payments as $payment)
-        {
+        foreach ($this->payments as $payment) {
             $sum += $payment->getAmount();
         }
 
@@ -163,16 +163,19 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
      */
     private function blockOverPaymentAttempt(AbstractPayment $payment)
     {
+        $i18n = new LocalizationService();
         $currentAmount = $payment->getAmount();
         foreach ($this->payments as $currentPayment) {
             $currentAmount += $currentPayment->getAmount();
         }
 
         if ($currentAmount > $this->amount) {
-            throw new \Exception(
-                'The sum of payment amounts is bigger than the amount of the order!',
-                400
+            $message = $i18n->getDashboard(
+                "The sum of payments is greater than the order amount! " .
+                    "Review the information and try again."
             );
+
+            throw new \Exception($message, 400);
         }
     }
 
@@ -195,7 +198,7 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
     private function discoverPaymentMethod(AbstractPayment $payment)
     {
         $paymentClass = get_class($payment);
-        $paymentClass = explode ('\\', $paymentClass);
+        $paymentClass = explode('\\', $paymentClass);
         $paymentClass = end($paymentClass);
         return $paymentClass;
     }
@@ -205,7 +208,7 @@ final class Order extends AbstractEntity implements ConvertibleToSDKRequestsInte
         if ($this->customer === null) {
             throw new \Exception(
                 'To use a saved credit card payment in an order ' .
-                'you must add a customer to it.',
+                    'you must add a customer to it.',
                 400
             );
         }

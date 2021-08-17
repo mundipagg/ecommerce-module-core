@@ -280,7 +280,10 @@ final class OrderService
 
                 $this->persistListChargeFailed($response);
 
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard(
+                    "Can't create payment. " .
+                        "Please review the information and try again."
+                );
                 throw new \Exception($message, 400);
             }
 
@@ -301,7 +304,10 @@ final class OrderService
                     "Can't create order. - Force Create Order: {$forceCreateOrder} | Order or charge status failed",
                     $orderInfo
                 );
-                $message = $i18n->getDashboard("Can't create order.");
+                $message = $i18n->getDashboard(
+                    "Can't create payment. " .
+                        "Please review the information and try again."
+                );
                 throw new \Exception($message, 400);
             }
 
@@ -337,6 +343,8 @@ final class OrderService
     public function extractPaymentOrderFromPlatformOrder(
         PlatformOrderInterface $platformOrder
     ) {
+        $i18n = new LocalizationService();
+
         $moduleConfig = MPSetup::getModuleConfiguration();
 
         $moneyService = new MoneyService();
@@ -359,9 +367,12 @@ final class OrderService
         foreach ($payments as $payment) {
             $order->addPayment($payment);
         }
-
+        $orderInfo = $this->getOrderInfo($platformOrder);
         if (!$order->isPaymentSumCorrect()) {
-            $message = 'The sum of payments is different than the order amount!';
+            $message = $i18n->getDashboard(
+                "The sum of payments is different than the order amount! " .
+                    "Review the information and try again."
+            );
             $this->logService->orderInfo(
                 $platformOrder->getCode(),
                 $message,
@@ -431,7 +442,7 @@ final class OrderService
     private function persistListChargeFailed($response)
     {
         if (empty($response['charges'])) {
-            return;
+            return [];
         }
 
         $charges = $this->createChargesFromResponse($response);
