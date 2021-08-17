@@ -1,4 +1,5 @@
 /.idea/
 /vendor/
+composer.lock
 /tests/report
 /tests/mock/db_test.sqlite
