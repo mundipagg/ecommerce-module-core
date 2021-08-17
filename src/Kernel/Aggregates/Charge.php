@@ -17,17 +17,17 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     /**
      *
-     * @var OrderId 
+     * @var OrderId
      */
     private $orderId;
     /**
      *
-     * @var int 
+     * @var int
      */
     private $amount;
     /**
      *
-     * @var int 
+     * @var int
      */
     private $paidAmount;
     /**
@@ -45,18 +45,18 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     /**
      *
-     * @var string 
+     * @var string
      */
     private $code;
     /**
      *
-     * @var ChargeStatus 
+     * @var ChargeStatus
      */
     private $status;
 
     /**
      *
-     * @var Transaction[] 
+     * @var Transaction[]
      */
     private $transactions;
 
@@ -94,16 +94,16 @@ final class Charge extends AbstractEntity implements ChargeInterface
         $this->setPaidAmount($amount);
 
         if ($this->getStatus()->equals(ChargeStatus::underpaid())) {
-            $this->status = ChargeStatus::underpaid();
+            $this->setStatus(ChargeStatus::underpaid());
             return;
         }
 
-        $this->status = ChargeStatus::paid();
+        $this->setStatus(ChargeStatus::paid());
         $amountToCancel = $this->amount - $this->getPaidAmount();
         $this->setCanceledAmount($amountToCancel);
 
         if ($this->getLastTransaction()->getPaidAmount() > $this->getAmount()) {
-            $this->status = ChargeStatus::overpaid();
+            $this->setStatus(ChargeStatus::overpaid());
             $this->setPaidAmount($this->getLastTransaction()->getPaidAmount());
         }
     }
@@ -124,7 +124,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
             //if all the paid amount was canceled, the charge should be canceled.
             if ($amount == $this->paidAmount) {
-                $this->status = ChargeStatus::canceled();
+                $this->setStatus(ChargeStatus::canceled());
             }
 
             return;
@@ -132,7 +132,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
         //if the charge wasn't payed yet the charge should be canceled.
         $this->setCanceledAmount($this->amount);
-        $this->status = ChargeStatus::canceled();
+        $this->setStatus(ChargeStatus::canceled());
     }
 
     /**
@@ -336,7 +336,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
 
     public function failed()
     {
-        $this->status = ChargeStatus::failed();
+        $this->setStatus(ChargeStatus::failed());
     }
 
     /**
@@ -351,8 +351,7 @@ final class Charge extends AbstractEntity implements ChargeInterface
         foreach ($transactions as $transaction) {
             if ($transaction->getMundipaggId()->equals(
                 $newTransaction->getMundipaggId()
-            )
-            ) {
+            )) {
                 return $this;
             }
         }
