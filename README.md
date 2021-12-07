@@ -1,6 +1,6 @@
 ### DEPRECATED | CHECK NEW VERSION > https://github.com/pagarme/ecommerce-module-core
 
-# Mundipagg agora é Pagar.me
+# Mundipagg agora é Pagar.me.
 
 Buscando trazer a melhor experiência para os nossos clientes, a Mundipagg agora é parte do Pagar.me.
 
