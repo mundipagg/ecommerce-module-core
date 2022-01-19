@@ -27,6 +27,7 @@ final class TransactionStatus extends AbstractValueObject
     const PENDING_REVIEW = 'pending_review';
     const ANALYZING = 'analyzing';
     const WAITING_CAPTURE = 'waiting_capture';
+    const CREATED = 'created';
 
     /**
      *
@@ -144,6 +145,10 @@ final class TransactionStatus extends AbstractValueObject
         return new self(self::WAITING_CAPTURE);
     }
 
+    public static function created()
+    {
+        return new self(self::CREATED);
+    }
 
     /**
      *
